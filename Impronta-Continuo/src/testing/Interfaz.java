@@ -126,7 +126,7 @@ public class Interfaz
         _solverContinuo = new SolverContinuo(_instancia);
         _solverContinuo.setEliminacionSimetrias(true);
         _solverContinuo.setCutPool(true);
-        _solverContinuo.setCortesDinamicos(false);
+        _solverContinuo.setCortesDinamicos(true);
         _solverContinuo.setPads(pads);
         _solverContinuo.setObjetivo(Modelo.Objetivo.Cantidad);
         _solverContinuo.setTiempoMaximo(30);
@@ -135,6 +135,11 @@ public class Interfaz
         
         long fin = System.currentTimeMillis();
         System.out.println(" -> Tiempo total: " + (fin - inicio) / 1000.0 + " sg.");
+
+    	crearVentana();
+        mostrarInstancia(_panelPrincipal);
+        mostrarSolucion();
+        mostrar(_framePrincipal);
 	}
 	
 	private void resolverCplex()
