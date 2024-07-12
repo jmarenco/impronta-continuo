@@ -110,4 +110,14 @@ public class GeneradorCliques
 		System.out.print(" -> GenClique = Horiz: " + _cortesHorizontales);
 		System.out.println(", Vert: " + _cortesVerticales);
 	}
+	
+	public static int getCortesHorizontales()
+	{
+		return _cortesHorizontales;
+	}
+	
+	public static int getCortesVerticales()
+	{
+		return _cortesVerticales;
+	}
 }

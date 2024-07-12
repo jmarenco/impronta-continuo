@@ -22,6 +22,12 @@ public class SolverContinuo
 	private double _tiempoMaximo;
 	private int _pads = 20;
 	
+	private double _objvalue;
+	private double _gap;
+	private int _nodes;
+	private int _cuts;
+	private String _status;
+	
 	public SolverContinuo(Instancia instancia)
 	{
 		_instancia = instancia;
@@ -29,37 +35,44 @@ public class SolverContinuo
 	
 	public void setEliminacionSimetrias(boolean valor)
 	{
+		System.out.println("SolverContinuo.eliminacionSimetrias = " + valor);
 		_eliminacionSimetrias = valor;
 	}
 	public void setCutPool(boolean valor)
 	{
+		System.out.println("SolverContinuo.cutPool = " + valor);
 		_cutPool = valor;
 	}
 	public void setCortesDinamicos(boolean valor)
 	{
+		System.out.println("SolverContinuo.cortesDinamicos = " + valor);
 		_genCuts = valor;
 	}
 	public void setObjetivo(Modelo.Objetivo valor)
 	{
+		System.out.println("SolverContinuo.objetivo = " + valor);
 		_objetivo = valor;
 	}
 	public void setTiempoMaximo(double valor)
 	{
+		System.out.println("SolverContinuo.tiempoMaximo = " + valor);
 		_tiempoMaximo = valor;
 	}
 	public void setPads(int valor)
 	{
+		System.out.println("SolverContinuo.pads = " + valor);
 		_pads = valor;
 	}
 	
 	public Solucion resolver()
 	{
 		Solucion solucion = null;
+		System.out.println();
 		
 		try
 		{
 			_cplex = new IloCplex();
-			_cplex.setParam(IloCplex.DoubleParam.TiLim, _tiempoMaximo);
+			_cplex.setParam(IloCplex.IntParam.TimeLimit, _tiempoMaximo);
 
 			_modelo = new Modelo(_instancia, _cplex, _pads);
 			_modelo.setObjetivo(_objetivo);
@@ -77,10 +90,19 @@ public class SolverContinuo
 			if( _cplex.solve() )
 				solucion = construirSolucion();
 			
+			_objvalue = _cplex.getObjValue();
+			_gap = 100 * _cplex.getMIPRelativeGap();
+			_status = _cplex.getStatus().toString();
+			_nodes = _cplex.getNnodes();
+			_cuts = _cplex.getNUCs();
+
 			System.out.println();
-			System.out.println("CPLEX Status: " + _cplex.getStatus());
-			System.out.println("CPLEX Nodes: " + _cplex.getNnodes());
-			System.out.println("CPLEX User Cuts: " + _cplex.getNUCs());
+			System.out.println("CPLEX Obj value: " + _objvalue);
+			System.out.println("CPLEX Gap: " + _gap);
+			System.out.println("CPLEX Status: " + _status);
+			System.out.println("CPLEX Nodes: " + _nodes);
+			System.out.println("CPLEX User Cuts: " + _cuts);
+			
 			
 			GeneradorCliques.mostrarEstadisticas();
 			Separador.mostrarEstadisticas();
@@ -108,5 +130,30 @@ public class SolverContinuo
 		}
 		
 		return solucion;
+	}
+	
+	public double getObjValue()
+	{
+		return _objvalue;
+	}
+	
+	public double getGap()
+	{
+		return _gap;
+	}
+	
+	public String getStatus()
+	{
+		return _status;
+	}
+	
+	public int getNodes()
+	{
+		return _nodes;
+	}
+	
+	public int getUserCuts()
+	{
+		return _cuts;
 	}
 }

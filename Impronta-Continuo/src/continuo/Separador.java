@@ -69,4 +69,14 @@ public class Separador extends IloCplex.UserCutCallback
 		SeparadorCliqueHorizontal.mostrarEstadisticas();
 		SeparadorCliqueVertical.mostrarEstadisticas();
 	}
+	
+	public static int getLlamadas()
+	{
+		return _llamadas;
+	}
+	
+	public static int getActivaciones()
+	{
+		return _activaciones;
+	}
 }

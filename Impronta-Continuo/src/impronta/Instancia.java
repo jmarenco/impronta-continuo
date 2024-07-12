@@ -39,6 +39,7 @@ public class Instancia
 	private OGIP _ogip;
 	private GeometryFactory _factory;
 	private AffineTransform _transform;
+	private String _archivo;
 	
 	public enum Formato { Nada, French, US };
 	public static Formato _formato = Formato.Nada;
@@ -51,6 +52,7 @@ public class Instancia
 		_restricciones = new ArrayList<Restriccion>();
 		_factory = new GeometryFactory();
 		_ogip = null;
+		_archivo = "";
 	}
 	
 	// Connstruye una instancia a partir de un archivo .xml
@@ -61,6 +63,7 @@ public class Instancia
 		_restricciones = new ArrayList<Restriccion>();
 		_factory = new GeometryFactory();
 		_ogip = null;
+		_archivo = archivoXml;
 		
 		System.out.println("Leyendo instancia ...");
 		System.out.println();
@@ -637,6 +640,10 @@ public class Instancia
 	public double getPasoVertical()
 	{
 		return _pasoVertical;
+	}
+	public String getArchivo()
+	{
+		return _archivo;
 	}
 	
 	// Obtiene un constructor de geometrias

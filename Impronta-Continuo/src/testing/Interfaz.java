@@ -17,6 +17,11 @@ import colgen.Dualizer;
 import colgen.SolverCG;
 import colgen.SolverCplex;
 import continuo.Modelo;
+import continuo.Separador;
+import continuo.SeparadorCliqueHorizontal;
+import continuo.SeparadorCliqueVertical;
+import continuo.SeparadorGenCliqueHorizontal;
+import continuo.SeparadorGenCliqueVertical;
 import continuo.SolverContinuo;
 import ilog.cplex.IloCplex;
 import impronta.Instancia;
@@ -28,10 +33,23 @@ public class Interfaz
 {
     public static void main(String[] args) throws Exception
     {
-		System.out.println("UFO Continuo - 0.71");
+		System.out.println("UFO Continuo - 0.72");
+		ArgMap argmap = new ArgMap(args);
 		
-		Interfaz interfaz = new Interfaz("Instancias/pol.1s.07.xml");
-		interfaz.resolverContinuo(20);
+		if( argmap.containsArg("-inst") == false )
+		{
+			System.out.println("  -inst [file.xml]  Instancia");
+			System.out.println("  -pads [n]         Pads a usar en el modelo");
+			System.out.println("  -time [n]         Tiempo maximo en segundos");
+			System.out.println("  -symm             Rompimiento de simetrías");
+			System.out.println("  -cuts             Cortes dinámicos");
+			System.out.println("  -cutpool          Pool de cortes");
+			System.out.println("  -obj [cant|area]  Función objetivo");
+			System.out.println("  -show             Muestra la solución");
+		}
+		
+		Interfaz interfaz = new Interfaz(argmap.stringArg("-inst", "Instancias/pol.1s.07.xml"));
+		interfaz.resolverContinuo(argmap);
     }
     
     public Interfaz(String archivo)
@@ -119,27 +137,44 @@ public class Interfaz
         System.out.println("fobj = " + _solverCG.getCplex().funcionObjetivo());
 	}
 
-	private void resolverContinuo(int pads)
+	private void resolverContinuo(ArgMap argmap)
 	{
 		long inicio = System.currentTimeMillis();
     	
         _solverContinuo = new SolverContinuo(_instancia);
-        _solverContinuo.setEliminacionSimetrias(true);
-        _solverContinuo.setCutPool(true);
-        _solverContinuo.setCortesDinamicos(true);
-        _solverContinuo.setPads(pads);
-        _solverContinuo.setObjetivo(Modelo.Objetivo.Cantidad);
-        _solverContinuo.setTiempoMaximo(30);
+        _solverContinuo.setEliminacionSimetrias(argmap.containsArg("-symm"));
+        _solverContinuo.setCutPool(argmap.containsArg("-cutpool"));
+        _solverContinuo.setCortesDinamicos(argmap.containsArg("-cuts"));
+        _solverContinuo.setPads(argmap.intArg("-pads", 20));
+        _solverContinuo.setObjetivo(argmap.stringArg("-obj", "cant").equals("cant") ? Modelo.Objetivo.Cantidad : Modelo.Objetivo.Area);
+        _solverContinuo.setTiempoMaximo(argmap.doubleArg("-time", 60));
 
         _solucion = _solverContinuo.resolver();
         
         long fin = System.currentTimeMillis();
-        System.out.println(" -> Tiempo total: " + (fin - inicio) / 1000.0 + " sg.");
+        System.out.println(" -> Tiempo total: " + (fin - inicio) / 1000.0 + " sg.\r\n");
 
-    	crearVentana();
-        mostrarInstancia(_panelPrincipal);
-        mostrarSolucion();
-        mostrar(_framePrincipal);
+        if( argmap.containsArg("-show") )
+        {
+	    	crearVentana();
+	        mostrarInstancia(_panelPrincipal);
+	        mostrarSolucion();
+	        mostrar(_framePrincipal);
+        }
+        
+        System.out.println();
+        System.out.print(_instancia.getArchivo() + " | Cont. | ");
+        System.out.print(_solverContinuo.getStatus() + " | ");
+        System.out.print(String.format("%5.2f", (fin - inicio) / 1000.0) + " seg | ");
+        System.out.print("Obj: " + String.format("%5.2f", _solverContinuo.getObjValue()) + " | ");
+        System.out.print(String.format("%5.2f", _solverContinuo.getGap()) + " % | ");
+        System.out.print("Nodes: " + _solverContinuo.getNodes() + " | ");
+        System.out.print("Cuts: " + _solverContinuo.getUserCuts() + " / " + Separador.getActivaciones() + " | ");
+        System.out.print("SH: " + SeparadorCliqueHorizontal.getResumen() + " | ");
+        System.out.print("SV: " + SeparadorCliqueVertical.getResumen() + " | ");
+        System.out.print("SGH: " + SeparadorGenCliqueHorizontal.getResumen() + " | ");
+        System.out.print("SGV: " + SeparadorGenCliqueVertical.getResumen() + " | ");
+        System.out.println();
 	}
 	
 	private void resolverCplex()

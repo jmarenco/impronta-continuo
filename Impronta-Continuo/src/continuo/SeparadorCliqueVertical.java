@@ -90,4 +90,24 @@ public class SeparadorCliqueVertical extends SeparadorGenerico
 		System.out.print(", Cortes: " + _cortes);
 		System.out.println(", Clique prom.: " + formato.format(_cortes > 0 ? _cliques / (double)_cortes : 0) );
 	}
+	
+	public static String getResumen()
+	{
+		return _cortes + " / " + _activaciones + " | " + String.format("%5.2f", _cortes > 0 ? _cliques / (double)_cortes : 0);
+	}
+	
+	public static int getActivaciones()
+	{
+		return _activaciones;
+	}
+	
+	public static int getCortes()
+	{
+		return _cortes;
+	}
+	
+	public static double getCliquePromedio()
+	{
+		return _cortes > 0 ? _cliques / (double)_cortes : 0;
+	}
 }
