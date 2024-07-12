@@ -1,0 +1,33 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<Parámetros>
+  <!--Dirección ideal del esfuerzo horizontal mínimo y tolerancia-->
+  <Esfuerzo_horizontal_mínimo Ángulo="0" Tolerancia="0" MaxTiempoModelo="1200" MaxTiempoSolver="600" Nx="1" Ny="1"/>
+  <Área Capa="Yacimiento" ID="1" Vértices="9">
+    <Vértice X="10" Y="0" />
+    <Vértice X="0" Y="16" />
+    <Vértice X="0" Y="29" />
+    <Vértice X="12" Y="33" />
+    <Vértice X="33" Y="33" />
+    <Vértice X="46" Y="16" />
+    <Vértice X="46" Y="6" />
+    <Vértice X="38" Y="0" />
+    <Vértice X="10" Y="0" />
+  </Área>
+  <Semillas Cantidad="2">
+    <Semilla ID="Semilla 1" Coeficiente="1">
+      <PAD Largo="15" Ancho="7" />
+      <LOCACION Largo="2" Ancho="1" Tolerancia="0" />
+    </Semilla>
+  </Semillas>
+  <Restricciones Cantidad="1">
+    <Restricción ID="1" Vértices="7" Ring="1">
+      <Vértice X="9" Y="22" />
+      <Vértice X="9" Y="25" />
+      <Vértice X="12" Y="28" />
+      <Vértice X="16" Y="29" />
+      <Vértice X="17" Y="27" />
+      <Vértice X="12" Y="23" />
+      <Vértice X="9" Y="22" />
+    </Restricción>
+  </Restricciones>
+</Parámetros>

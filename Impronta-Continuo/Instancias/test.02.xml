@@ -1,0 +1,19 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<Parámetros>
+  <Esfuerzo_horizontal_mínimo Ángulo="0" Tolerancia="0" MaxTiempoModelo="1200" MaxTiempoSolver="600" Nx="1" Ny="1"/>
+  <Área Capa="Yacimiento" ID="1" Vértices="5">
+    <Vértice X="13" Y="0" />
+    <Vértice X="13" Y="13" />
+    <Vértice X="0" Y="13" />
+    <Vértice X="0" Y="0" />
+    <Vértice X="13" Y="0" />
+  </Área>
+  <Semillas Cantidad="1">
+    <Semilla ID="Semilla 1" Coeficiente="1">
+      <PAD Largo="10" Ancho="5" />
+      <LOCACION Largo="5" Ancho="5" Tolerancia="0" />
+    </Semilla>
+  </Semillas>
+  <Restricciones Cantidad="0">
+  </Restricciones>
+</Parámetros>
