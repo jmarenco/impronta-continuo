@@ -41,12 +41,12 @@ public class SeparadorCliqueVertical extends SeparadorGenerico
 		for(int i=0; i<_pads; ++i)
 		for(int j=i+1; j<_pads; ++j)
 		{
-			double lhs = solucion.gety(i) - solucion.gety(j) + M * solucion.gett(i, j) + _semilla.getAncho();
+			double lhs = solucion.gety(i) - solucion.gety(j) + M * solucion.gett(i, j) + (_semilla.getAncho() / 2) * (solucion.getw(i,0) + solucion.getw(j,0));
 			boolean[] K = new boolean[_pads];
 			
 			for(int k=i+1; k<j; ++k)
 			{
-				double aporte = _semilla.getAncho() * (solucion.getw(i,0) + solucion.gett(i,k) - 2 + solucion.gett(k,j));
+				double aporte = _semilla.getAncho() * (solucion.getw(k,0) + solucion.gett(i,k) - 2 + solucion.gett(k,j));
 				if( aporte > 0 )
 				{
 					lhs += aporte;
@@ -63,15 +63,17 @@ public class SeparadorCliqueVertical extends SeparadorGenerico
 	private void agregarDesigualdad(int i, int j, boolean[] K) throws IloException
 	{
 		IloNumExpr lhs = _cplex.linearNumExpr();
-		double rhs = M - _semilla.getAncho();
+		double rhs = M;
 
 		lhs = _cplex.sum(lhs, _cplex.prod(1.0, _modelo.gety(i)));
 		lhs = _cplex.sum(lhs, _cplex.prod(-1.0, _modelo.gety(j)));
 		lhs = _cplex.sum(lhs, _cplex.prod(M, _modelo.gett(i,j)));
+		lhs = _cplex.sum(lhs, _cplex.prod(_semilla.getAncho() / 2, _modelo.getw(i,0)));
+		lhs = _cplex.sum(lhs, _cplex.prod(_semilla.getAncho() / 2, _modelo.getw(j,0)));
 		
 		for(int k=0; k<_pads; ++k) if( K[k] == true )
 		{
-			lhs = _cplex.sum(lhs, _cplex.prod(_semilla.getAncho(), _modelo.getw(i,0)));
+			lhs = _cplex.sum(lhs, _cplex.prod(_semilla.getAncho(), _modelo.getw(k,0)));
 			lhs = _cplex.sum(lhs, _cplex.prod(_semilla.getAncho(), _modelo.gett(i,k)));
 			lhs = _cplex.sum(lhs, _cplex.prod(_semilla.getAncho(), _modelo.gett(k,j)));
 			rhs += 2 * _semilla.getAncho();
