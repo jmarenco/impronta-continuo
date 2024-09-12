@@ -24,8 +24,8 @@ public class Separador extends IloCplex.UserCutCallback
 		_separadores = new ArrayList<SeparadorGenerico>();
 		_separadores.add( new SeparadorCliqueHorizontal(modelo, this) );
 		_separadores.add( new SeparadorCliqueVertical(modelo, this) );
-		_separadores.add( new SeparadorGenCliqueHorizontal(modelo, this) );
-		_separadores.add( new SeparadorGenCliqueVertical(modelo, this) );
+//		_separadores.add( new SeparadorGenCliqueHorizontal(modelo, this) );
+//		_separadores.add( new SeparadorGenCliqueVertical(modelo, this) );
 	}
 	
 	@Override

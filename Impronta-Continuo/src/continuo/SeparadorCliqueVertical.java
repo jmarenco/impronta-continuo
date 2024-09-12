@@ -46,7 +46,7 @@ public class SeparadorCliqueVertical extends SeparadorGenerico
 			
 			for(int k=i+1; k<j; ++k)
 			{
-				double aporte = _semilla.getAncho() * (solucion.gett(i,k) - 1 + solucion.gett(k,j));
+				double aporte = _semilla.getAncho() * (solucion.getw(i,0) + solucion.gett(i,k) - 2 + solucion.gett(k,j));
 				if( aporte > 0 )
 				{
 					lhs += aporte;
@@ -71,9 +71,10 @@ public class SeparadorCliqueVertical extends SeparadorGenerico
 		
 		for(int k=0; k<_pads; ++k) if( K[k] == true )
 		{
+			lhs = _cplex.sum(lhs, _cplex.prod(_semilla.getAncho(), _modelo.getw(i,0)));
 			lhs = _cplex.sum(lhs, _cplex.prod(_semilla.getAncho(), _modelo.gett(i,k)));
 			lhs = _cplex.sum(lhs, _cplex.prod(_semilla.getAncho(), _modelo.gett(k,j)));
-			rhs += _semilla.getAncho();
+			rhs += 2 * _semilla.getAncho();
 			
 			_cliques++;
 		}
