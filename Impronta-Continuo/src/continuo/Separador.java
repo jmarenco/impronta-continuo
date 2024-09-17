@@ -16,16 +16,20 @@ public class Separador extends IloCplex.UserCutCallback
 	private static int _activaciones = 0;
 	private static int _llamadas = 0;
 	private static int _skipFactor = 100;
+	private static boolean _activo = true;
 	
 	public Separador(IloCplex cplex, Modelo modelo)
 	{
 		_modelo = modelo;
-
 		_separadores = new ArrayList<SeparadorGenerico>();
-		_separadores.add( new SeparadorCliqueHorizontal(modelo, this) );
-		_separadores.add( new SeparadorCliqueVertical(modelo, this) );
-//		_separadores.add( new SeparadorGenCliqueHorizontal(modelo, this) );
-//		_separadores.add( new SeparadorGenCliqueVertical(modelo, this) );
+		
+		if( _activo == true )
+		{
+			_separadores.add( new SeparadorCliqueHorizontal(modelo, this) );
+			_separadores.add( new SeparadorCliqueVertical(modelo, this) );
+			_separadores.add( new SeparadorGenCliqueHorizontal(modelo, this) );
+			_separadores.add( new SeparadorGenCliqueVertical(modelo, this) );
+		}
 	}
 	
 	@Override
@@ -78,5 +82,11 @@ public class Separador extends IloCplex.UserCutCallback
 	public static int getActivaciones()
 	{
 		return _activaciones;
+	}
+	
+	public static void setActivo(boolean valor)
+	{
+		System.out.println("Separador.activo = " + valor);
+		_activo = valor;
 	}
 }

@@ -4,7 +4,6 @@ import java.text.DecimalFormat;
 
 import ilog.concert.IloException;
 import ilog.concert.IloNumExpr;
-import impronta.Semilla;
 
 public class SeparadorGenCliqueHorizontal extends SeparadorGenerico
 {
@@ -12,8 +11,8 @@ public class SeparadorGenCliqueHorizontal extends SeparadorGenerico
 	{
 		super(modelo, padre);
 		
-		_activo = _semillas > 2 && primeraEsMaxima();
-		_primera = _instancia.getSemillas().get(0);
+		_activo = _semillas > 1;
+		_maxLargo = _instancia.getSemillas().stream().mapToDouble(s -> s.getLargo()).max().orElse(0);
 		
 		M = _modelo.maxx() - _modelo.minx();
 	}
@@ -23,7 +22,7 @@ public class SeparadorGenCliqueHorizontal extends SeparadorGenerico
 	private static int _cortes;
 	private static int _cliques;
 
-	private Semilla _primera;
+	private double _maxLargo;
 	private boolean _activo = true;
 	private double M;
 	
@@ -52,9 +51,9 @@ public class SeparadorGenCliqueHorizontal extends SeparadorGenerico
 			
 			for(int t=i+1; t<j; ++t)
 			{
-				double aporte = (sumaLargos() - (_semillas-1) * _primera.getLargo()) * (solucion.getl(i,t) + solucion.getl(t,j) - 1);
-				for(int k=1; k<_semillas; ++k)
-					aporte += (_primera.getLargo() - _instancia.getSemilla(k).getLargo()) * (solucion.getl(i,t) + solucion.getl(t,j) + solucion.getw(t,k) - 2);
+				double aporte = _maxLargo * (solucion.getl(i,t) + solucion.getl(t,j) - 1);
+				for(int k=0; k<_semillas; ++k)
+					aporte += _instancia.getSemilla(k).getLargo() * solucion.getw(t,k);
 				
 				if( aporte > 0 )
 				{
@@ -86,35 +85,18 @@ public class SeparadorGenCliqueHorizontal extends SeparadorGenerico
 
 		for(int t=0; t<_pads; ++t) if( K[t] == true )
 		{
-			double coef = sumaLargos() - (_semillas-1) * _primera.getLargo();
+			lhs = _cplex.sum(lhs, _cplex.prod(_maxLargo, _modelo.getl(i,t)));
+			lhs = _cplex.sum(lhs, _cplex.prod(_maxLargo, _modelo.getl(t,j)));
+			rhs += _maxLargo;
 			
-			lhs = _cplex.sum(lhs, _cplex.prod(coef, _modelo.getl(i,t)));
-			lhs = _cplex.sum(lhs, _cplex.prod(coef, _modelo.getl(t,j)));
-			rhs += coef;
-			
-			for(int k=1; k<_semillas; ++k)
-			{
-				lhs = _cplex.sum(lhs, _cplex.prod(_primera.getLargo() - _instancia.getSemilla(k).getLargo(), _modelo.getw(t,k)));
-				rhs += 2 * (_primera.getLargo() - _instancia.getSemilla(k).getLargo());
-			}
+			for(int k=0; k<_semillas; ++k)
+				lhs = _cplex.sum(lhs, _cplex.prod(_instancia.getSemilla(k).getLargo(), _modelo.getw(t,k)));
 			
 			_cliques++;
 		}
 		
 		_padre.agregar(_cplex.le(lhs, rhs));
 		_cortes++;
-	}
-	
-	// Determina si la semilla de mayor largo es la primera
-	public boolean primeraEsMaxima()
-	{
-		return _primera.getLargo() == _instancia.getSemillas().stream().mapToDouble(s -> s.getLargo()).max().getAsDouble();
-	}
-	
-	// Suma de los largos de las semillas
-	public double sumaLargos()
-	{
-		return _instancia.getSemillas().stream().mapToDouble(s -> s.getLargo()).sum();
 	}
 	
 	public static void mostrarEstadisticas()

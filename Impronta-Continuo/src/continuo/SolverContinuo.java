@@ -17,7 +17,6 @@ public class SolverContinuo
 	
 	private boolean _eliminacionSimetrias = true;
 	private boolean _cutPool = true;
-	private boolean _genCuts = false;
 	private Modelo.Objetivo _objetivo = Modelo.Objetivo.Cantidad;
 	private double _tiempoMaximo;
 	private int _pads = 20;
@@ -42,11 +41,6 @@ public class SolverContinuo
 	{
 		System.out.println("SolverContinuo.cutPool = " + valor);
 		_cutPool = valor;
-	}
-	public void setCortesDinamicos(boolean valor)
-	{
-		System.out.println("SolverContinuo.cortesDinamicos = " + valor);
-		_genCuts = valor;
 	}
 	public void setObjetivo(Modelo.Objetivo valor)
 	{
@@ -84,8 +78,7 @@ public class SolverContinuo
 			if( _cutPool == true )
 				GeneradorCliques.ejecutar(_cplex, _modelo);
 
-			if( _genCuts == true )
-				_cplex.use(new Separador(_cplex, _modelo));
+			_cplex.use(new Separador(_cplex, _modelo));
 			
 			if( _cplex.solve() )
 				solucion = construirSolucion();

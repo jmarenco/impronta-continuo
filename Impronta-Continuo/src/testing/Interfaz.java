@@ -140,11 +140,12 @@ public class Interfaz
 	private void resolverContinuo(ArgMap argmap)
 	{
 		long inicio = System.currentTimeMillis();
-    	
-        _solverContinuo = new SolverContinuo(_instancia);
+
+		Separador.setActivo(argmap.containsArg("-cuts"));
+
+		_solverContinuo = new SolverContinuo(_instancia);
         _solverContinuo.setEliminacionSimetrias(argmap.containsArg("-symm"));
         _solverContinuo.setCutPool(argmap.containsArg("-cutpool"));
-        _solverContinuo.setCortesDinamicos(argmap.containsArg("-cuts"));
         _solverContinuo.setPads(argmap.intArg("-pads", 20));
         _solverContinuo.setObjetivo(argmap.stringArg("-obj", "cant").equals("cant") ? Modelo.Objetivo.Cantidad : Modelo.Objetivo.Area);
         _solverContinuo.setTiempoMaximo(argmap.doubleArg("-time", 60));
