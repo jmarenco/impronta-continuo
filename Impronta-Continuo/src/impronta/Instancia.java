@@ -603,6 +603,10 @@ public class Instancia
 	{
 		_semillas.add(s);
 	}
+	public void agregarRestriccion(Restriccion restriccion)
+	{
+		_restricciones.add(restriccion);
+	}
 	
 	// Getters
 	public Region getRegion()

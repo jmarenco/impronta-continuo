@@ -38,7 +38,7 @@ public class Interfaz
 		
 		if( argmap.containsArg("-inst") == false )
 		{
-			System.out.println("  -inst [file.xml]  Instancia");
+			System.out.println("  -inst [f]         Instancia (f = file.xml, random.seed.s.obst)");
 			System.out.println("  -pads [n]         Pads a usar en el modelo");
 			System.out.println("  -time [n]         Tiempo maximo en segundos");
 			System.out.println("  -symm             Rompimiento de simetrías");
@@ -192,11 +192,23 @@ public class Interfaz
 	
 	private Instancia construirInstancia(String archivo)
 	{
-    	Instancia._formato = Instancia.Formato.French;
-    	Instancia._alinear = true;
-		Instancia instancia = new Instancia(archivo);
-    	
-		return instancia;
+		if( archivo.contains("random") == false )
+		{
+	    	Instancia._formato = Instancia.Formato.French;
+	    	Instancia._alinear = true;
+			Instancia instancia = new Instancia(archivo);
+
+			return instancia;
+		}
+		else
+		{
+			String[] campos = archivo.split("\\.");
+			int seed = Integer.parseInt(campos[1]);
+			int semillas = Integer.parseInt(campos[2]);
+			int obstaculos = Integer.parseInt(campos[3]);
+			
+			return new Generador(seed).generar(semillas, obstaculos);
+		}
 	}
 
 	private void mostrarInstancia(DrawingPanel panel)
