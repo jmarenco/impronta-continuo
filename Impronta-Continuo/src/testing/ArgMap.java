@@ -169,6 +169,10 @@ public class ArgMap
 
 		return -1;
 	}
-
-
+	
+	@Override
+	public String toString()
+	{
+		return String.join(" ", args);
+	}
 }

@@ -175,6 +175,7 @@ public class Interfaz
         System.out.print("SV: " + SeparadorCliqueVertical.getResumen() + " | ");
         System.out.print("SGH: " + SeparadorGenCliqueHorizontal.getResumen() + " | ");
         System.out.print("SGV: " + SeparadorGenCliqueVertical.getResumen() + " | ");
+        System.out.print(argmap);
         System.out.println();
 	}
 	
