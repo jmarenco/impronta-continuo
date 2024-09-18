@@ -38,7 +38,7 @@ public class Interfaz
 		
 		if( argmap.containsArg("-inst") == false )
 		{
-			System.out.println("  -inst [f]         Instancia (f = file.xml, random.seed.s.obst)");
+			System.out.println("  -inst [f]         Instancia (f = file.xml, random.seed.s.obst.ssize.obstsize)");
 			System.out.println("  -pads [n]         Pads a usar en el modelo");
 			System.out.println("  -time [n]         Tiempo maximo en segundos");
 			System.out.println("  -symm             Rompimiento de simetrías");
@@ -206,8 +206,10 @@ public class Interfaz
 			int seed = Integer.parseInt(campos[1]);
 			int semillas = Integer.parseInt(campos[2]);
 			int obstaculos = Integer.parseInt(campos[3]);
+			int tamanoSemilla = Integer.parseInt(campos[4]);
+			int tamanoObstaculos = Integer.parseInt(campos[5]);
 			
-			return new Generador(seed).generar(semillas, obstaculos);
+			return new Generador(seed).generar(semillas, obstaculos, tamanoSemilla, tamanoObstaculos);
 		}
 	}
 
@@ -248,7 +250,7 @@ public class Interfaz
         for(Pad pad: _solucion.getPads())
         {
             _panelPrincipal.addGeometry(pad.getPerimetro());
-            _panelPrincipal.addGeometry(pad.getLocacion(), Color.BLACK, null, true);
+//            _panelPrincipal.addGeometry(pad.getLocacion(), Color.BLACK, null, true);
             _panelPrincipal.addGeometry(pad.getCentro(), Color.RED);
         }
         

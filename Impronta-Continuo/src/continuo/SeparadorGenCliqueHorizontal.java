@@ -51,7 +51,7 @@ public class SeparadorGenCliqueHorizontal extends SeparadorGenerico
 			
 			for(int t=i+1; t<j; ++t)
 			{
-				double aporte = _maxLargo * (solucion.getl(i,t) + solucion.getl(t,j) - 1);
+				double aporte = _maxLargo * (solucion.getl(i,t) + solucion.getl(t,j) - 2);
 				for(int k=0; k<_semillas; ++k)
 					aporte += _instancia.getSemilla(k).getLargo() * solucion.getw(t,k);
 				
@@ -87,7 +87,7 @@ public class SeparadorGenCliqueHorizontal extends SeparadorGenerico
 		{
 			lhs = _cplex.sum(lhs, _cplex.prod(_maxLargo, _modelo.getl(i,t)));
 			lhs = _cplex.sum(lhs, _cplex.prod(_maxLargo, _modelo.getl(t,j)));
-			rhs += _maxLargo;
+			rhs += 2 * _maxLargo;
 			
 			for(int k=0; k<_semillas; ++k)
 				lhs = _cplex.sum(lhs, _cplex.prod(_instancia.getSemilla(k).getLargo(), _modelo.getw(t,k)));

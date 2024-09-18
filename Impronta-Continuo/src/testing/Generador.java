@@ -29,21 +29,27 @@ public class Generador
 		_random = new Random(seed);
 	}
 	
-	public Instancia generar(int semillas, int obstaculos)
+	public Instancia generar(int semillas, int obstaculos, int tamanoSemilla, int tamanoObstaculos)
 	{
+		Polygon envolvente = poligono(_ladosRegion, 10, 0, 0);
 		Region region = new Region();
-		region.agregarEnvolvente(poligono(_ladosRegion, 10, 0, 0));
+		region.agregarEnvolvente(envolvente);
 		
 		_instancia = new Instancia();
 		_instancia.setRegion(region);
 		
-		for(int i=0; i<obstaculos; ++i)
-			_instancia.agregarRestriccion(new Restriccion("R" + i, "R" + i, poligono(_ladosObstaculo, 1, _random.nextDouble() * 10, _random.nextDouble() * 10)));
+		while( _instancia.getRestricciones().size() < obstaculos)
+		{
+			Polygon obstaculo = poligono(_ladosObstaculo, tamanoObstaculos, _random.nextDouble() * (10 - tamanoObstaculos), _random.nextDouble() * (10 - tamanoObstaculos));
+
+			if( envolvente.intersects(obstaculo))
+				_instancia.agregarRestriccion(new Restriccion("R" + _instancia.getRestricciones().size(), "R" + _instancia.getRestricciones().size(), obstaculo));
+		}
 		
-		_instancia.agregarSemilla(new Semilla(3, 2, 0.1, 0.1, 0, 1));
+		_instancia.agregarSemilla(new Semilla(tamanoSemilla, tamanoSemilla/3.0, 0.1, 0.1, 0, 1));
 		
 		if( semillas > 1 )
-			_instancia.agregarSemilla(new Semilla(0.5, 0.3, 0.1, 0.1, 0, 1));
+			_instancia.agregarSemilla(new Semilla(tamanoSemilla/3.0, tamanoSemilla/7.0, 0.1, 0.1, 0, 1));
 
 		return _instancia;
 	}

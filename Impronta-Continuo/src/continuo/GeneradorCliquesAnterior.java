@@ -4,8 +4,10 @@ import ilog.concert.IloException;
 import ilog.concert.IloNumExpr;
 import ilog.cplex.IloCplex;
 import impronta.Instancia;
+import impronta.Semilla;
 
-public class GeneradorCliques
+@Deprecated
+public class GeneradorCliquesAnterior
 {
 	private IloCplex _cplex;
 	private Modelo _modelo;
@@ -15,7 +17,7 @@ public class GeneradorCliques
 	{
 		try
 		{
-			GeneradorCliques generador = new GeneradorCliques(cplex, modelo);
+			GeneradorCliquesAnterior generador = new GeneradorCliquesAnterior(cplex, modelo);
 			generador.ejecutar();
 		}
 		catch(Exception e)
@@ -24,23 +26,21 @@ public class GeneradorCliques
 		}
 	}
 	
-	public GeneradorCliques(IloCplex cplex, Modelo modelo)
+	public GeneradorCliquesAnterior(IloCplex cplex, Modelo modelo)
 	{
 		_cplex = cplex;
 		_modelo = modelo;
 		_instancia = modelo.getInstancia();
-		_maxLargo = _instancia.getSemillas().stream().mapToDouble(s -> s.getLargo()).max().orElse(0);
-		_maxAncho = _instancia.getSemillas().stream().mapToDouble(s -> s.getAncho()).max().orElse(0);
+		_semilla = _instancia.getSemillas().get(0);
 		
-		M = Math.max(_modelo.maxx() - _modelo.minx(), _modelo.maxy() - _modelo.miny());
+		M = _modelo.maxx() - _modelo.minx();
 	}
 	
 	private static int _cortesHorizontales;
 	private static int _cortesVerticales;
 	
 	private double M;
-	private double _maxLargo;
-	private double _maxAncho;
+	private Semilla _semilla;
 	
 	public static void inicializar()
 	{
@@ -50,6 +50,9 @@ public class GeneradorCliques
 	
 	public void ejecutar() throws IloException
 	{
+		if( _instancia.getSemillas().size() != 1 )
+			return;
+		
 		generarHorizontales();
 		generarVerticales();
 	}
@@ -60,26 +63,17 @@ public class GeneradorCliques
 		for(int j=i+2; j<i+5 && j<_modelo.getPads(); ++j)
 		{
 			IloNumExpr lhs = _cplex.linearNumExpr();
-			double rhs = M;
+			double rhs = M - _semilla.getLargo();
 
 			lhs = _cplex.sum(lhs, _cplex.prod(1.0, _modelo.getx(i)));
 			lhs = _cplex.sum(lhs, _cplex.prod(-1.0, _modelo.getx(j)));
 			lhs = _cplex.sum(lhs, _cplex.prod(M, _modelo.getl(i,j)));
 			
-			for(int s=0; s<_instancia.getSemillas().size(); ++s)
-			{
-				lhs = _cplex.sum(lhs, _cplex.prod(_instancia.getSemilla(s).getLargo()/2, _modelo.getw(i,s)));
-				lhs = _cplex.sum(lhs, _cplex.prod(_instancia.getSemilla(s).getLargo()/2, _modelo.getw(j,s)));
-			}
-			
 			for(int k=i+1; k<j; ++k)
 			{
-				lhs = _cplex.sum(lhs, _cplex.prod(_maxLargo, _modelo.getl(i,k)));
-				lhs = _cplex.sum(lhs, _cplex.prod(_maxLargo, _modelo.getl(k,j)));
-				rhs += 2 * _maxLargo;
-
-				for(int s=0; s<_instancia.getSemillas().size(); ++s)
-					lhs = _cplex.sum(lhs, _cplex.prod(_instancia.getSemilla(s).getLargo(), _modelo.getw(k,s)));
+				lhs = _cplex.sum(lhs, _cplex.prod(_semilla.getLargo(), _modelo.getl(i,k)));
+				lhs = _cplex.sum(lhs, _cplex.prod(_semilla.getLargo(), _modelo.getl(k,j)));
+				rhs += _semilla.getLargo();
 			}
 			
 			_cplex.addUserCut(_cplex.le(lhs, rhs));
@@ -93,26 +87,17 @@ public class GeneradorCliques
 		for(int j=i+2; j<i+5 && j<_modelo.getPads(); ++j)
 		{
 			IloNumExpr lhs = _cplex.linearNumExpr();
-			double rhs = M;
+			double rhs = M - _semilla.getAncho();
 
 			lhs = _cplex.sum(lhs, _cplex.prod(1.0, _modelo.gety(i)));
 			lhs = _cplex.sum(lhs, _cplex.prod(-1.0, _modelo.gety(j)));
 			lhs = _cplex.sum(lhs, _cplex.prod(M, _modelo.gett(i,j)));
 			
-			for(int s=0; s<_instancia.getSemillas().size(); ++s)
-			{
-				lhs = _cplex.sum(lhs, _cplex.prod(_instancia.getSemilla(s).getAncho()/2, _modelo.getw(i,s)));
-				lhs = _cplex.sum(lhs, _cplex.prod(_instancia.getSemilla(s).getAncho()/2, _modelo.getw(j,s)));
-			}
-
 			for(int k=i+1; k<j; ++k)
 			{
-				lhs = _cplex.sum(lhs, _cplex.prod(_maxAncho, _modelo.gett(i,k)));
-				lhs = _cplex.sum(lhs, _cplex.prod(_maxAncho, _modelo.gett(k,j)));
-				rhs += 2 * _maxAncho;
-
-				for(int s=0; s<_instancia.getSemillas().size(); ++s)
-					lhs = _cplex.sum(lhs, _cplex.prod(_instancia.getSemilla(s).getAncho(), _modelo.getw(k,s)));
+				lhs = _cplex.sum(lhs, _cplex.prod(_semilla.getAncho(), _modelo.gett(i,k)));
+				lhs = _cplex.sum(lhs, _cplex.prod(_semilla.getAncho(), _modelo.gett(k,j)));
+				rhs += _semilla.getAncho();
 			}
 			
 			_cplex.addUserCut(_cplex.le(lhs, rhs));
