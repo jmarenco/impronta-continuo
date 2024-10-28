@@ -33,7 +33,7 @@ public class Interfaz
 {
     public static void main(String[] args) throws Exception
     {
-		System.out.println("UFO Continuo - 0.72");
+		System.out.println("UFO Continuo - 0.73");
 		ArgMap argmap = new ArgMap(args);
 		
 		if( argmap.containsArg("-inst") == false )

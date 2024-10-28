@@ -72,7 +72,7 @@ public class GeneradorCliques
 				lhs = _cplex.sum(lhs, _cplex.prod(_instancia.getSemilla(s).getLargo()/2, _modelo.getw(j,s)));
 			}
 			
-			for(int k=i+1; k<j; ++k)
+			for(int k=i+1; k<i+2; ++k) // Solamente un pad!
 			{
 				lhs = _cplex.sum(lhs, _cplex.prod(_maxLargo, _modelo.getl(i,k)));
 				lhs = _cplex.sum(lhs, _cplex.prod(_maxLargo, _modelo.getl(k,j)));
@@ -105,7 +105,7 @@ public class GeneradorCliques
 				lhs = _cplex.sum(lhs, _cplex.prod(_instancia.getSemilla(s).getAncho()/2, _modelo.getw(j,s)));
 			}
 
-			for(int k=i+1; k<j; ++k)
+			for(int k=i+1; k<i+2; ++k) // Solamente un pad!
 			{
 				lhs = _cplex.sum(lhs, _cplex.prod(_maxAncho, _modelo.gett(i,k)));
 				lhs = _cplex.sum(lhs, _cplex.prod(_maxAncho, _modelo.gett(k,j)));
