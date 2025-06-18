@@ -125,16 +125,22 @@ public class Interfaz
 	
 	private void resolverRowCol(ArgMap argmap)
 	{
-		HeuristicaInicial heuristica = new HeuristicaInicial(_instancia);
-		heuristica.ejecutar();
+		SolverCG solver = new SolverCG(_instancia);
+		solver.iniciar();
+		solver.iterar();
 		
         if( argmap.containsArg("-show") )
         {
 	    	crearVentana();
 	        mostrarInstancia(_panelPrincipal);
-	       	mostrarRelajacion(heuristica.getPrimales());
-	       	mostrarDiscretizacion(heuristica.getDiscretizacion());
+	       	mostrarRelajacion(solver.primales());
+	       	mostrarRestricciones(solver.duales());
         	mostrar(_framePrincipal);
+        	
+        	crearDualizer();
+        	mostrarInstancia(_panelDualizer);
+        	mostrarSolucionDualizer(solver.getDualizer());
+        	mostrar(_frameDualizer);
         }
 	}
 	
@@ -148,77 +154,6 @@ public class Interfaz
 		
 		_solverCplex = new SolverCplex(_instancia, pads, points);
 		_solucion = _solverCplex.resolver();
-	}
-	
-	@SuppressWarnings("unused")
-	private void resolverCG(double paso, boolean raiz)
-	{
-		_instancia.setPasoHorizontal(paso);
-		_instancia.setPasoVertical(paso);
-    	
-        _solverCG = new SolverCG(_instancia);
-        _solverCG.iniciar();
-
-    	crearVentana();
-    	crearDualizer();
-
-    	int iteraciones = 0;
-        while( _solverCG.iterar() == true && iteraciones < 1500 )
-        {
-        	imprimirResumen();
-        	++iteraciones;
-
-        	if( _solverCG.getCplex().funcionObjetivo() == 840 || _solverCG.getCplex().cantidadVariables() % 10 == 0)
-        	{
-	        	limpiar(_panelPrincipal);
-	            mostrarInstancia(_panelPrincipal);
-	        	mostrarRestricciones();
-	        	mostrarRelajacion(_solverCG.primales());
-	        	mostrarDuales(Duales.positivos);
-	        	mostrarVioladorDual();
-	        	mostrar(_framePrincipal);
-
-	        	limpiar(_panelDualizer);
-	            mostrarInstancia(_panelDualizer);
-        		mostrarInputDualizer();
-        		mostrarSolucionDualizer();
-           		mostrarPadNoFactible();
-            	mostrar(_frameDualizer);
-
-//            	if( _solverCG.getCplex().funcionObjetivo() == 840 )
-//            		new java.util.Scanner(System.in).nextInt();
-        	}
-        }
-        
-        if( raiz == false )
-        {
-	        resolverCplex();
-        	limpiar(_panelPrincipal);
-            mostrarInstancia(_panelPrincipal);
-	        mostrarSolucion();
-	    	mostrar(_framePrincipal);
-        }
-        else
-        {
-        	imprimirResumen();
-
-        	limpiar(_panelPrincipal);
-            mostrarInstancia(_panelPrincipal);
-        	mostrarRestricciones();
-        	mostrarRelajacion(_solverCG.primales());
-        	mostrarDuales(Duales.positivos);
-        	mostrar(_framePrincipal);
-        	
-        	limpiar(_panelDualizer);
-            mostrarInstancia(_panelDualizer);
-    		mostrarInputDualizer();
-    		mostrarSolucionDualizer();
-       		mostrarPadNoFactible();
-        	mostrar(_frameDualizer);
-        }
-        
-        System.out.println();
-        System.out.println("fobj = " + _solverCG.getCplex().funcionObjetivo());
 	}
 
 	private Instancia construirInstancia(String archivo)
@@ -325,12 +260,12 @@ public class Interfaz
 
 	private enum Duales { todos, positivos };
 	
-	private void mostrarDuales(Duales modalidad)
+	@SuppressWarnings("unused")
+	private void mostrarDuales(Map<Point, Double> duales, Duales modalidad)
 	{
-		if( _panelPrincipal == null || _solverCG == null )
+		if( _panelPrincipal == null )
 			return;
 		
-		Map<Point, Double> duales = _solverCG.duales();
     	double max = duales.values().stream().max(Double::compare).get();
     	
 		// Ordena los puntos por los valores de sus variables duales
@@ -349,15 +284,17 @@ public class Interfaz
         }
 	}
 
-	private void mostrarRestricciones()
+	@SuppressWarnings("unused")
+	private void mostrarRestricciones(Map<Point, Double> duales)
 	{
-		if( _panelPrincipal == null || _solverCG == null )
+		if( _panelPrincipal == null )
 			return;
 		
-        for(Point point: _solverCG.duales().keySet())
+        for(Point point: duales.keySet())
             _panelPrincipal.addGeometry(point, Color.BLUE);
 	}
 
+	@SuppressWarnings("unused")
 	private void mostrarVioladorDual()
 	{
 		if( _panelPrincipal == null || _solverCG == null )
@@ -369,6 +306,7 @@ public class Interfaz
 			_panelPrincipal.addGeometry(pad.getPerimetro(), Color.RED);
 	}
 
+	@SuppressWarnings("unused")
 	private void mostrarInputDualizer()
 	{
 		if( _panelDualizer == null || _solverCG == null )
@@ -381,6 +319,7 @@ public class Interfaz
         	_panelDualizer.addGeometry(point, Color.BLUE);
 	}
 
+	@SuppressWarnings("unused")
 	private void mostrarPadNoFactible()
 	{
 		if( _panelDualizer == null || _solverCG == null || _solverCG.getDualizer().getPadNoFactible() == null )
@@ -389,12 +328,13 @@ public class Interfaz
        	_panelDualizer.addGeometry(_solverCG.getDualizer().getPadNoFactible().getPerimetro(), Color.RED);
 	}
 	
-	private void mostrarSolucionDualizer()
+	@SuppressWarnings("unused")
+	private void mostrarSolucionDualizer(Dualizer dualizer)
 	{
-		if( _panelDualizer == null || _solverCG == null )
+		if( _panelDualizer == null )
 			return;
 		
-		Map<Point, Double> vars = _solverCG.getDualizer().getXVars();
+		Map<Point, Double> vars = dualizer.getXVars();
     	double max = vars.values().stream().max(Double::compare).get();
     	
         for(Point point: vars.keySet()) if( vars.get(point) > 0.01 )
@@ -407,18 +347,18 @@ public class Interfaz
 	}
 	
 	@SuppressWarnings("unused")
-	private void imprimirDuales()
+	private void imprimirDuales(Map<Point, Double> duales)
 	{
 		if( _solverCG == null )
 			return;
 		
-		Map<Point, Double> duales = _solverCG.duales();
         for(Point point: duales.keySet())
         	System.out.println(" -> Dual (" + point + ") = " + duales.get(point));
         
         System.out.println();
 	}
 	
+	@SuppressWarnings("unused")
 	private void imprimirResumen()
 	{
 		CplexCG cplex = _solverCG.getCplex();
@@ -454,6 +394,7 @@ public class Interfaz
         _framePrincipal.add(_panelPrincipal);
 	}
 	
+	@SuppressWarnings("unused")
 	private void crearDualizer()
 	{
 		_frameDualizer = new JFrame("Dualizador");
@@ -472,6 +413,7 @@ public class Interfaz
 			frame.setVisible(true);
 	}
 	
+	@SuppressWarnings("unused")
 	private void limpiar(DrawingPanel panel)
 	{
 		if( panel != null )

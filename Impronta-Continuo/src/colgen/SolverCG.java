@@ -1,25 +1,18 @@
 package colgen;
 
 import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.Collections;
-import java.util.List;
 import java.util.Map;
-import java.util.Random;
 
 import com.vividsolutions.jts.geom.Coordinate;
 import com.vividsolutions.jts.geom.Point;
 
-import impronta.Discretizacion;
 import impronta.Instancia;
 import impronta.Pad;
-import impronta.Timer;
 
 // Representa el proceso de resolucion
 public class SolverCG
 {
 	private Instancia _instancia;
-	private Discretizacion _discretizacion;
 	private ArrayList<Pad> _pads;
 	private CplexCG _cplex;
 	private Dualizer _dualizer;
@@ -29,8 +22,6 @@ public class SolverCG
 	private boolean _dualViolado;
 	private boolean _primalViolado;
 	private Pad _violadorDual;
-	
-	private Random _random = new Random(5);
 
 	// Constructor
 	public SolverCG(Instancia instancia)
@@ -42,8 +33,7 @@ public class SolverCG
 	// Resuelve la instancia
 	public void iniciar()
 	{
-		construirDiscretizacion();
-		generarPads();
+		inicializarPads();
 		inicializarModelo();
 		resolverRelajacion();
 	}
@@ -72,100 +62,34 @@ public class SolverCG
 			return false;
 		}
 		
-		Pad pad = violadorDual();
-		if( pad != null )
-		{
-			agregar(pad);
-			resolverRelajacion();
-			
-			_dualViolado = true;
-			_violadorDual = pad;
-			return true;
-		}
+//		Pad pad = violadorDual();
+//		if( pad != null )
+//		{
+//			agregar(pad);
+//			resolverRelajacion();
+//			
+//			_dualViolado = true;
+//			_violadorDual = pad;
+//			return true;
+//		}
 		
 		return false;
 	}
 	
-	@Deprecated
-	public boolean iterar_previo()
+	// Inicializa los pads con la heurística inicial
+	private void inicializarPads()
 	{
-		_dualOptimo = false;
-		_dualViolado = false;
-		_primalViolado = false;
-		_violadorDual = null;
-		
-		if( dualOptimo() == true )
-		{
-			_dualOptimo = true;
-			
-			Point point = lazyConstraint();
-			if( point == null )
-				return false;
-			
-			agregar(point);
-			resolverRelajacion();
-				
-			_primalViolado = true;
-			return true;
-		}
-		
-		Pad pad = violadorDual();
-		if( pad != null )
-		{
-			agregar(pad);
-			resolverRelajacion();
-			
-			_dualViolado = true;
-			_violadorDual = pad;
-			return true;
-		}
-		
-		Point point = lazyConstraint();
-		if( point != null )
-		{
-			agregar(point);
-			resolverRelajacion();
-			
-			_primalViolado = true;
-			return true;
-		}
-		
-		return false;
-	}
-
-	// Construye la discretizacion
-	private void construirDiscretizacion()
-	{
-		System.out.println("Construyendo discretizacion ...");
-		System.out.println();
-		System.out.println("  -> Delta x: " + _instancia.getPasoHorizontal() + ", Delta y: " + _instancia.getPasoVertical());
-		Timer.comenzar();
-
-		_discretizacion = new Discretizacion(_instancia);
-
-		System.out.println("  -> " + _discretizacion.getPuntos().getCoordinates().length + " puntos generados");
-		System.out.println();
-		Timer.chequear();
-	}
-
-	// Genera todos los pads factibles
-	private void generarPads()
-	{
-		System.out.println("Construyendo pads ...");
-		System.out.println();
-		
-		_pads = _discretizacion.construirPads();
-		Timer.chequear();
-		
-		System.out.println("  -> " + _pads.size() + " pads generados");
-		System.out.println();
+		_pads = HeuristicaInicial.ejecutar(_instancia).getPads();
+		System.out.println(_pads.size() + " pads iniciales");
 	}
 	
 	// Inicializa el modelo
 	private void inicializarModelo()
 	{
 		_cplex = new CplexCG();
-		agregar(_pads.get(0));
+		
+		for(Pad pad: _pads)
+			agregar(pad);
 	}
 	
 	// Pruebas de la resolucion
@@ -201,8 +125,8 @@ public class SolverCG
 	// Busca un pad que viole las restricciones duales
 	public Pad violadorDual()
 	{
+		// TODO: Reimplementar!
 		Map<Point, Double> duales = _cplex.duales();
-		Collections.shuffle(_pads, _random);
 		
 		for(Pad pad: _pads)
 		{
@@ -240,30 +164,11 @@ public class SolverCG
 		
 		return null;
 	}
-	private Point lazyConstraint_previo()
-	{
-		Map<Pad, Double> primales = _cplex.primales();
-		
-		List<Point> points = Arrays.asList(_discretizacion.getPoints());
-		Collections.shuffle(points, _random);
-		
-		for(Point point: points)
-		{
-			double lhs = 0;
-			for(Pad pad: primales.keySet()) if( pad.contiene(point) )
-				lhs += primales.get(pad);
-			
-			if( lhs > 1.01 )
-				return point;
-		}
-		
-		return null;
-	}
 	
 	// Intenta construir una solucion dual con el mismo objetivo que el primal
 	private boolean dualOptimo()
 	{
-		_dualizer = new Dualizer(this, _random);
+		_dualizer = new Dualizer(this);
 		return _dualizer.esOptima();
 	}
 	
@@ -287,10 +192,6 @@ public class SolverCG
 	public Instancia getInstancia()
 	{
 		return _instancia;
-	}
-	public Discretizacion getDiscretizacion()
-	{
-		return _discretizacion;
 	}
 	public ArrayList<Pad> getPads()
 	{

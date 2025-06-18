@@ -46,7 +46,7 @@ public class CplexCG
 		
 		try
 		{
-			IloNumVar variable = _cplex.numVar(0.0, 10.0);
+			IloNumVar variable = _cplex.numVar(0.0, Double.MAX_VALUE);
 			
 			_cplex.add(variable);
 			_variables.put(pad, variable);

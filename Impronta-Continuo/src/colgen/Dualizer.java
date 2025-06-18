@@ -1,13 +1,9 @@
 package colgen;
 
 import java.util.ArrayList;
-import java.util.Collections;
 import java.util.HashMap;
 import java.util.Map;
-import java.util.Random;
 
-import com.vividsolutions.jts.geom.Coordinate;
-import com.vividsolutions.jts.geom.Geometry;
 import com.vividsolutions.jts.geom.Point;
 
 import ilog.concert.IloException;
@@ -22,25 +18,21 @@ public class Dualizer
 	private SolverCG _solverCG;
 	private Map<Pad, Double> _primales;
 	private Map<Point, Double> _duales;
-	private ArrayList<Pad> _todos;
 	
-	private ArrayList<Point> _puntos;
-	private ArrayList<Pad> _pads;
+	private ArrayList<Point> _variables;
+	private ArrayList<Pad> _restricciones;
 
 	private IloCplex _cplex;
 	private Map<Pad, IloNumVar> _vvars;
 	private Map<Point, IloNumVar> _yvars;
 	
-	private Random _random;
 	private Pad _padNoFactible;
 
-	public Dualizer(SolverCG solver, Random random)
+	public Dualizer(SolverCG solver)
 	{
 		_solverCG = solver;
-		_random = random;
 		_primales = solver.primales();
 		_duales = solver.duales();
-		_todos = new ArrayList<Pad>(_solverCG.getPads());
 	}
 	
 	public boolean esOptima()
@@ -61,75 +53,11 @@ public class Dualizer
 		return ret;
 	}
 
-	// Puntos generados hasta ahora, mas algunos puntos adicionales seleccionados aleatoriamente
+	// Puntos generados hasta ahora
 	private void construirInput()
 	{
-		construirInputAleatorio();
-	}
-	private void construirInputAleatorio()
-	{
-		_pads = new ArrayList<Pad>(_primales.keySet());
-		_puntos = new ArrayList<Point>(_duales.keySet());
-		
-		Collections.shuffle(_todos, _random);
-		
-		for(int i=0; i<100 && i<_todos.size(); ++i) if( _pads.contains(_todos.get(i)) == false )
-			_pads.add(_todos.get(i));
-	}
-	private void construirInputPorEsquinas()
-	{
-		_pads = new ArrayList<Pad>(_primales.keySet());
-		_puntos = new ArrayList<Point>(_duales.keySet());
-		
-		Collections.sort(_todos, (x,y) -> esquinasDescubiertas(y) - esquinasDescubiertas(x));
-
-		for(int i=0; i<100 && i<_todos.size(); ++i) if( _pads.contains(_todos.get(i)) == false && _random.nextBoolean() == true )
-			_pads.add(_todos.get(i));
-	}
-	private void construirInputPorArea()
-	{
-		_pads = new ArrayList<Pad>(_primales.keySet());
-		_puntos = new ArrayList<Point>(_duales.keySet());
-		
-		Map<Pad, Double> c = new HashMap<Pad, Double>();
-		Collections.sort(_todos, (x,y) -> (int)Math.signum(areaDescubierta(y,c) - areaDescubierta(x,c)));
-
-		for(int i=0; i<100 && i<_todos.size(); ++i) if( _pads.contains(_todos.get(i)) == false && _random.nextBoolean() == true )
-			_pads.add(_todos.get(i));
-	}
-	private void construirInputTodos()
-	{
-		_pads = new ArrayList<Pad>(_primales.keySet());
-		_puntos = new ArrayList<Point>(_duales.keySet());
-		
-		for(Pad pad: _todos)
-			_pads.add(pad);
-	}
-	
-	// Area de un pad no cubierta por la solucion ni por los pads seleccionados
-	private double areaDescubierta(Pad pad, Map<Pad, Double> cache)
-	{
-		if( cache.containsKey(pad) == false )
-		{
-			Geometry diferencia = pad.getPerimetro();
-			for(Pad otro: _pads)
-				diferencia = diferencia.difference(otro.getPerimetro());
-		
-			cache.put(pad, diferencia.getArea());
-		}
-		
-		return cache.get(pad);
-	}
-	
-	// Esquinas de un pad no cubiertas por la solucion
-	private int esquinasDescubiertas(Pad pad)
-	{
-		int ret = 0;
-		for(Coordinate coordinate: pad.getEsquinas())
-		for(Pad otro: _pads) if( otro.contiene(coordinate) == false )
-			++ret;
-		
-		return ret;
+		_variables = new ArrayList<Point>(_duales.keySet());
+		_restricciones = new ArrayList<Pad>(_primales.keySet());
 	}
 
 	private boolean resolverModelo() throws IloException
@@ -140,30 +68,30 @@ public class Dualizer
 		_vvars = new HashMap<Pad, IloNumVar>();
 		_yvars = new HashMap<Point, IloNumVar>();
 		
-		for(Pad pad: _pads)
-			_vvars.put(pad, _cplex.numVar(0, Double.MAX_VALUE, "v" + _pads.indexOf(pad)));
+		for(Point punto: _variables)
+			_yvars.put(punto, _cplex.numVar(0, Double.MAX_VALUE));
 		
-		for(Point punto: _puntos)
-			_yvars.put(punto, _cplex.numVar(0, Double.MAX_VALUE, "x" + _puntos.indexOf(punto)));
+		for(Pad pad: _restricciones)
+			_vvars.put(pad, _cplex.numVar(0, Double.MAX_VALUE));
 
 		IloNumExpr objetivo = _cplex.linearIntExpr();
-		for(Pad pad: _pads)
+		for(Pad pad: _restricciones)
 			objetivo = _cplex.sum(objetivo, _vvars.get(pad));
 		
 		_cplex.addMinimize(objetivo);
 		
-		for(Pad pad: _pads)
+		for(Pad pad: _restricciones)
 		{
 			IloNumExpr lhs = _cplex.linearNumExpr();
-			for(Point punto: _puntos) if( pad.contiene(punto) )
+			for(Point punto: _variables) if( pad.contiene(punto) )
 				lhs = _cplex.sum(lhs, _yvars.get(punto));
 			
-			lhs = _cplex.sum(lhs, _vvars.get(pad));
-			_cplex.addGe(lhs, _solverCG.objetivo(pad));
+			lhs = _cplex.sum(lhs, _cplex.prod(-1, _vvars.get(pad)));
+			_cplex.addGe(lhs, 1);
 		}
 		
 		IloNumExpr ths = _cplex.linearNumExpr();
-		for(Point punto: _puntos)
+		for(Point punto: _variables)
 			ths = _cplex.sum(ths, _yvars.get(punto));
 		
 		_cplex.addEq(ths, _solverCG.getCplex().funcionObjetivo());
@@ -173,22 +101,7 @@ public class Dualizer
 	
 	private boolean dualFactible() throws UnknownObjectException, IloException
 	{
-		_padNoFactible = null;
-		Collections.shuffle(_todos, _random);
-
-		for(Pad pad: _todos)
-		{
-			double lhs = 0;
-			for(Point point: _yvars.keySet()) if( pad.contiene(point) )
-				lhs += _cplex.getValue(_yvars.get(point));
-			
-			if( lhs < 0.99 * _solverCG.objetivo(pad) )
-			{
-				_padNoFactible = pad;
-				return false;
-			}
-		}
-		
+		// TODO: Implementar!
 		return true;
 	}
 	
@@ -225,11 +138,11 @@ public class Dualizer
 	}
 	public ArrayList<Pad> getPads()
 	{
-		return _pads;
+		return _restricciones;
 	}
 	public ArrayList<Point> getPuntos()
 	{
-		return _puntos;
+		return _variables;
 	}
 	public Map<Point, Double> getXVars()
 	{
@@ -237,7 +150,7 @@ public class Dualizer
 		
 		try
 		{
-			for(Point punto: _puntos)
+			for(Point punto: _variables)
 				ret.put(punto, _cplex.getValue(_yvars.get(punto)));
 		}
 		catch(IloException e)

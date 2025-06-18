@@ -47,29 +47,16 @@ public class HeuristicaInicial
 		_instancia.setPasoHorizontal(_instancia.getSemillas().stream().mapToDouble(s -> s.getLargo()).min().orElse(100));
 		_instancia.setPasoVertical(_instancia.getSemillas().stream().mapToDouble(s -> s.getAncho()).min().orElse(100));
 
-		System.out.println("Construyendo discretizacion ...");
-		System.out.println();
-		System.out.println("  -> Delta x: " + _instancia.getPasoHorizontal() + ", Delta y: " + _instancia.getPasoVertical());
 		Timer.comenzar();
-
 		_discretizacion = new Discretizacion(_instancia);
-
-		System.out.println("  -> " + _discretizacion.getPuntos().getCoordinates().length + " puntos generados");
-		System.out.println();
 		Timer.chequear();
 	}
 
 	// Genera todos los pads factibles
 	private void generarPads()
 	{
-		System.out.println("Construyendo pads ...");
-		System.out.println();
-		
 		_pads = _discretizacion.construirPads();
 		Timer.chequear();
-		
-		System.out.println("  -> " + _pads.size() + " pads generados");
-		System.out.println();
 	}
 	
 	// Inicializa el modelo
