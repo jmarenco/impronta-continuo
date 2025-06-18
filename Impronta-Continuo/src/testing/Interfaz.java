@@ -336,6 +336,7 @@ public class Interfaz
 		
 		Map<Point, Double> vars = dualizer.getXVars();
     	double max = vars.values().stream().max(Double::compare).get();
+    	System.out.println("Max dualizer var: " + max);
     	
         for(Point point: vars.keySet()) if( vars.get(point) > 0.01 )
         {
@@ -343,6 +344,13 @@ public class Interfaz
         	Color color = new Color(rgbNum,rgbNum,rgbNum);
         	
             _panelDualizer.addGeometry(point, color);
+            System.out.println("y(" + point + ") = " + vars.get(point));
+            
+            if( _instancia.getSemillas().size() == 1 )
+            {
+                _panelDualizer.addGeometry(Pad.rigido(_instancia, _instancia.getSemilla(0), point.getCoordinate()).getPerimetro(), color, color, false);
+                _panelDualizer.addGeometry(Pad.rigido(_instancia, _instancia.getSemilla(0), point.getCoordinate()).getPerimetro(), Color.GRAY);
+            }
         }
 	}
 	

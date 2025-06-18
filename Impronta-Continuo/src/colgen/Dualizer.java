@@ -96,6 +96,8 @@ public class Dualizer
 		
 		_cplex.addEq(ths, _solverCG.getCplex().funcionObjetivo());
 		
+		System.out.println("Dualizer target: " + _solverCG.getCplex().funcionObjetivo());
+		
 		return _cplex.solve();
 	}
 	
