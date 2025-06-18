@@ -16,6 +16,7 @@ import colgen.CplexCG;
 import colgen.Dualizer;
 import colgen.SolverCG;
 import colgen.SolverCplex;
+import colgen.HeuristicaInicial;
 import continuo.Modelo;
 import continuo.Separador;
 import continuo.SeparadorCliqueHorizontal;
@@ -24,6 +25,7 @@ import continuo.SeparadorGenCliqueHorizontal;
 import continuo.SeparadorGenCliqueVertical;
 import continuo.SolverContinuo;
 import ilog.cplex.IloCplex;
+import impronta.Discretizacion;
 import impronta.Instancia;
 import impronta.Pad;
 import impronta.Restriccion;
@@ -33,11 +35,12 @@ public class Interfaz
 {
     public static void main(String[] args) throws Exception
     {
-		System.out.println("UFO Continuo - 0.73");
+		System.out.println("UFO Continuo - 0.74");
 		ArgMap argmap = new ArgMap(args);
 		
 		if( argmap.containsArg("-inst") == false )
 		{
+			System.out.println("  -model [s]        Modelo a utilizar [cont|colgen|cplex]");
 			System.out.println("  -inst [f]         Instancia (f = file.xml, random.seed.s.obst.ssize.obstsize)");
 			System.out.println("  -pads [n]         Pads a usar en el modelo");
 			System.out.println("  -time [n]         Tiempo maximo en segundos");
@@ -48,8 +51,19 @@ public class Interfaz
 			System.out.println("  -show             Muestra la solución");
 		}
 		
+		if( !argmap.containsArg("-model") )
+			return;
+		
 		Interfaz interfaz = new Interfaz(argmap.stringArg("-inst", "Instancias/pol.1s.07.xml"));
-		interfaz.resolverContinuo(argmap);
+
+		if( argmap.stringArg("-model", "").equals("cont") )
+			interfaz.resolverContinuo(argmap);
+		
+		if( argmap.stringArg("-model", "").equals("colgen") )
+			interfaz.resolverRowCol(argmap);
+		
+		if( argmap.stringArg("-model", "").equals("cplex") )
+			interfaz.resolverCplex();
     }
     
     public Interfaz(String archivo)
@@ -66,76 +80,6 @@ public class Interfaz
     private DrawingPanel _panelPrincipal;    
     private JFrame _frameDualizer;
     private DrawingPanel _panelDualizer;    
-    
-	private void resolverCG(double paso, boolean raiz)
-	{
-		_instancia.setPasoHorizontal(paso);
-		_instancia.setPasoVertical(paso);
-    	
-        _solverCG = new SolverCG(_instancia);
-        _solverCG.iniciar();
-
-    	crearVentana();
-    	crearDualizer();
-
-    	int iteraciones = 0;
-        while( _solverCG.iterar() == true && iteraciones < 1500 )
-        {
-        	imprimirResumen();
-        	++iteraciones;
-
-        	if( _solverCG.getCplex().funcionObjetivo() == 840 || _solverCG.getCplex().cantidadVariables() % 10 == 0)
-        	{
-	        	limpiar(_panelPrincipal);
-	            mostrarInstancia(_panelPrincipal);
-	        	mostrarRestricciones();
-	        	mostrarRelajacion();
-	        	mostrarDuales(Duales.positivos);
-	        	mostrarVioladorDual();
-	        	mostrar(_framePrincipal);
-
-	        	limpiar(_panelDualizer);
-	            mostrarInstancia(_panelDualizer);
-        		mostrarInputDualizer();
-        		mostrarSolucionDualizer();
-           		mostrarPadNoFactible();
-            	mostrar(_frameDualizer);
-
-//            	if( _solverCG.getCplex().funcionObjetivo() == 840 )
-//            		new java.util.Scanner(System.in).nextInt();
-        	}
-        }
-        
-        if( raiz == false )
-        {
-	        resolverCplex();
-        	limpiar(_panelPrincipal);
-            mostrarInstancia(_panelPrincipal);
-	        mostrarSolucion();
-	    	mostrar(_framePrincipal);
-        }
-        else
-        {
-        	imprimirResumen();
-
-        	limpiar(_panelPrincipal);
-            mostrarInstancia(_panelPrincipal);
-        	mostrarRestricciones();
-        	mostrarRelajacion();
-        	mostrarDuales(Duales.positivos);
-        	mostrar(_framePrincipal);
-        	
-        	limpiar(_panelDualizer);
-            mostrarInstancia(_panelDualizer);
-    		mostrarInputDualizer();
-    		mostrarSolucionDualizer();
-       		mostrarPadNoFactible();
-        	mostrar(_frameDualizer);
-        }
-        
-        System.out.println();
-        System.out.println("fobj = " + _solverCG.getCplex().funcionObjetivo());
-	}
 
 	private void resolverContinuo(ArgMap argmap)
 	{
@@ -179,6 +123,21 @@ public class Interfaz
         System.out.println();
 	}
 	
+	private void resolverRowCol(ArgMap argmap)
+	{
+		HeuristicaInicial heuristica = new HeuristicaInicial(_instancia);
+		heuristica.ejecutar();
+		
+        if( argmap.containsArg("-show") )
+        {
+	    	crearVentana();
+	        mostrarInstancia(_panelPrincipal);
+	       	mostrarRelajacion(heuristica.getPrimales());
+	       	mostrarDiscretizacion(heuristica.getDiscretizacion());
+        	mostrar(_framePrincipal);
+        }
+	}
+	
 	private void resolverCplex()
 	{
 		if( _solverCG == null )
@@ -191,6 +150,77 @@ public class Interfaz
 		_solucion = _solverCplex.resolver();
 	}
 	
+	@SuppressWarnings("unused")
+	private void resolverCG(double paso, boolean raiz)
+	{
+		_instancia.setPasoHorizontal(paso);
+		_instancia.setPasoVertical(paso);
+    	
+        _solverCG = new SolverCG(_instancia);
+        _solverCG.iniciar();
+
+    	crearVentana();
+    	crearDualizer();
+
+    	int iteraciones = 0;
+        while( _solverCG.iterar() == true && iteraciones < 1500 )
+        {
+        	imprimirResumen();
+        	++iteraciones;
+
+        	if( _solverCG.getCplex().funcionObjetivo() == 840 || _solverCG.getCplex().cantidadVariables() % 10 == 0)
+        	{
+	        	limpiar(_panelPrincipal);
+	            mostrarInstancia(_panelPrincipal);
+	        	mostrarRestricciones();
+	        	mostrarRelajacion(_solverCG.primales());
+	        	mostrarDuales(Duales.positivos);
+	        	mostrarVioladorDual();
+	        	mostrar(_framePrincipal);
+
+	        	limpiar(_panelDualizer);
+	            mostrarInstancia(_panelDualizer);
+        		mostrarInputDualizer();
+        		mostrarSolucionDualizer();
+           		mostrarPadNoFactible();
+            	mostrar(_frameDualizer);
+
+//            	if( _solverCG.getCplex().funcionObjetivo() == 840 )
+//            		new java.util.Scanner(System.in).nextInt();
+        	}
+        }
+        
+        if( raiz == false )
+        {
+	        resolverCplex();
+        	limpiar(_panelPrincipal);
+            mostrarInstancia(_panelPrincipal);
+	        mostrarSolucion();
+	    	mostrar(_framePrincipal);
+        }
+        else
+        {
+        	imprimirResumen();
+
+        	limpiar(_panelPrincipal);
+            mostrarInstancia(_panelPrincipal);
+        	mostrarRestricciones();
+        	mostrarRelajacion(_solverCG.primales());
+        	mostrarDuales(Duales.positivos);
+        	mostrar(_framePrincipal);
+        	
+        	limpiar(_panelDualizer);
+            mostrarInstancia(_panelDualizer);
+    		mostrarInputDualizer();
+    		mostrarSolucionDualizer();
+       		mostrarPadNoFactible();
+        	mostrar(_frameDualizer);
+        }
+        
+        System.out.println();
+        System.out.println("fobj = " + _solverCG.getCplex().funcionObjetivo());
+	}
+
 	private Instancia construirInstancia(String archivo)
 	{
 		if( archivo.contains("random") == false )
@@ -229,18 +259,19 @@ public class Interfaz
         	panel.addGeometry(restriccion.getPolygon(), Color.BLACK, Color.LIGHT_GRAY, true);
 	}
 	
+	@SuppressWarnings("unused")
 	private void mostrarOGIP()
 	{
         _panelPrincipal.addOGIP(_instancia.getOGIP());
 	}
 	
-	private void mostrarDiscretizacion()
+	private void mostrarDiscretizacion(Discretizacion discretizacion)
 	{
-		if( _panelPrincipal == null || _solverCG == null )
+		if( _panelPrincipal == null )
 			return;
 		
-		System.out.println(_solverCG.getDiscretizacion().getPuntos().getCoordinates().length + " puntos generados");
-       	_panelPrincipal.addGeometry(_solverCG.getDiscretizacion().getPuntos());
+		System.out.println(discretizacion.getPuntos().getCoordinates().length + " puntos generados");
+       	_panelPrincipal.addGeometry(discretizacion.getPuntos());
 	}
 
 	private void mostrarSolucion()
@@ -260,6 +291,7 @@ public class Interfaz
         System.out.println(" -> Area cubierta: " + df.format(_solucion.porcentajeCubierto()) + " %");
 	}
 
+	@SuppressWarnings("unused")
 	private void imprimirRelajacion()
 	{
 		if( _solverCG == null )
@@ -273,12 +305,10 @@ public class Interfaz
         System.out.println();
 	}
 
-	private void mostrarRelajacion()
+	private void mostrarRelajacion(Map<Pad, Double> solucion)
 	{
-		if( _panelPrincipal == null || _solverCG == null )
+		if( _panelPrincipal == null )
 			return;
-		
-		Map<Pad, Double> solucion = _solverCG.primales();
 		
 		// Ordena los pads por los valores de sus variables
 		ArrayList<Pad> pads = new ArrayList<Pad>(solucion.keySet());
@@ -376,6 +406,7 @@ public class Interfaz
         }
 	}
 	
+	@SuppressWarnings("unused")
 	private void imprimirDuales()
 	{
 		if( _solverCG == null )
