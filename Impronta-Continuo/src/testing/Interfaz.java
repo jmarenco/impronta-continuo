@@ -14,6 +14,7 @@ import com.vividsolutions.jts.geom.Polygon;
 
 import colgen.CplexCG;
 import colgen.Dualizer;
+import colgen.FeasibleArea;
 import colgen.SolverCG;
 import colgen.SolverCplex;
 import colgen.HeuristicaInicial;
@@ -192,6 +193,9 @@ public class Interfaz
         
         for(Restriccion restriccion: _instancia.getRestricciones())
         	panel.addGeometry(restriccion.getPolygon(), Color.BLACK, Color.LIGHT_GRAY, true);
+
+        for(Polygon factible: new FeasibleArea(_instancia).get().getEnvolventes())
+        	panel.addGeometry(factible, Color.LIGHT_GRAY, Color.LIGHT_GRAY, false);
 	}
 	
 	@SuppressWarnings("unused")
@@ -200,6 +204,7 @@ public class Interfaz
         _panelPrincipal.addOGIP(_instancia.getOGIP());
 	}
 	
+	@SuppressWarnings("unused")
 	private void mostrarDiscretizacion(Discretizacion discretizacion)
 	{
 		if( _panelPrincipal == null )
