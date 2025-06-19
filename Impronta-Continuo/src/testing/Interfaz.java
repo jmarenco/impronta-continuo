@@ -1,18 +1,23 @@
 package testing;
 
 import java.awt.Color;
+import java.awt.SystemColor;
 import java.text.DecimalFormat;
 import java.util.ArrayList;
 import java.util.Collections;
+import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
 import javax.swing.JFrame;
 
+import com.vividsolutions.jts.geom.Coordinate;
 import com.vividsolutions.jts.geom.Point;
 import com.vividsolutions.jts.geom.Polygon;
+import com.vividsolutions.jts.geom.PrecisionModel;
 
 import colgen.CplexCG;
+import colgen.CubrimientoDual;
 import colgen.Dualizer;
 import colgen.FeasibleArea;
 import colgen.SolverCG;
@@ -29,7 +34,9 @@ import ilog.cplex.IloCplex;
 import impronta.Discretizacion;
 import impronta.Instancia;
 import impronta.Pad;
+import impronta.Region;
 import impronta.Restriccion;
+import impronta.Semilla;
 import impronta.Solucion;
 
 public class Interfaz
@@ -127,8 +134,7 @@ public class Interfaz
 	private void resolverRowCol(ArgMap argmap)
 	{
 		SolverCG solver = new SolverCG(_instancia);
-		solver.iniciar();
-		solver.iterar();
+		solver.resolver(4);
 		
         if( argmap.containsArg("-show") )
         {
@@ -140,7 +146,8 @@ public class Interfaz
         	
         	crearDualizer();
         	mostrarInstancia(_panelDualizer);
-        	mostrarSolucionDualizer(solver.getDualizer());
+        	mostrarCubrimientoDual(CubrimientoDual.get(_instancia, solver.getLastDualizer().getCubrimiento()).get(_instancia.getSemilla(0)), CubrimientoDual.getUncoveredPoints(_instancia, solver.getLastDualizer().getCubrimiento()));
+        	mostrarSolucionDualizer(solver.getLastDualizer());
         	mostrar(_frameDualizer);
         }
 	}
@@ -194,7 +201,7 @@ public class Interfaz
         for(Restriccion restriccion: _instancia.getRestricciones())
         	panel.addGeometry(restriccion.getPolygon(), Color.BLACK, Color.LIGHT_GRAY, true);
 
-        for(Polygon factible: new FeasibleArea(_instancia).get().getEnvolventes())
+        for(Polygon factible: FeasibleArea.get(_instancia).getEnvolventes())
         	panel.addGeometry(factible, Color.LIGHT_GRAY, Color.LIGHT_GRAY, false);
 	}
 	
@@ -300,37 +307,16 @@ public class Interfaz
 	}
 
 	@SuppressWarnings("unused")
-	private void mostrarVioladorDual()
-	{
-		if( _panelPrincipal == null || _solverCG == null )
-			return;
-		
-		Pad pad = _solverCG.violadorDual();
-		
-		if( pad != null )
-			_panelPrincipal.addGeometry(pad.getPerimetro(), Color.RED);
-	}
-
-	@SuppressWarnings("unused")
 	private void mostrarInputDualizer()
 	{
 		if( _panelDualizer == null || _solverCG == null )
 			return;
 
-        for(Pad pad: _solverCG.getDualizer().getPads())
+        for(Pad pad: _solverCG.getLastDualizer().getPads())
         	_panelDualizer.addGeometry(pad.getPerimetro(), Color.WHITE);
         
-        for(Point point: _solverCG.getDualizer().getPuntos())
+        for(Point point: _solverCG.getLastDualizer().getPuntos())
         	_panelDualizer.addGeometry(point, Color.BLUE);
-	}
-
-	@SuppressWarnings("unused")
-	private void mostrarPadNoFactible()
-	{
-		if( _panelDualizer == null || _solverCG == null || _solverCG.getDualizer().getPadNoFactible() == null )
-			return;
-
-       	_panelDualizer.addGeometry(_solverCG.getDualizer().getPadNoFactible().getPerimetro(), Color.RED);
 	}
 	
 	@SuppressWarnings("unused")
@@ -339,7 +325,7 @@ public class Interfaz
 		if( _panelDualizer == null )
 			return;
 		
-		Map<Point, Double> vars = dualizer.getXVars();
+		Map<Point, Double> vars = dualizer.getCubrimiento();
     	double max = vars.values().stream().max(Double::compare).get();
     	System.out.println("Max dualizer var: " + max);
     	
@@ -349,14 +335,28 @@ public class Interfaz
         	Color color = new Color(rgbNum,rgbNum,rgbNum);
         	
             _panelDualizer.addGeometry(point, color);
-            System.out.println("y(" + point + ") = " + vars.get(point));
-            
-            if( _instancia.getSemillas().size() == 1 )
-            {
-                _panelDualizer.addGeometry(Pad.rigido(_instancia, _instancia.getSemilla(0), point.getCoordinate()).getPerimetro(), color, color, false);
-                _panelDualizer.addGeometry(Pad.rigido(_instancia, _instancia.getSemilla(0), point.getCoordinate()).getPerimetro(), Color.GRAY);
-            }
         }
+	}
+	
+	@SuppressWarnings("unused")
+	private void mostrarCubrimientoDual(Region region, List<Point> uncovered)
+	{
+		if( _panelDualizer == null )
+			return;
+
+		for(Polygon envolvente: region.getEnvolventes())
+			_panelDualizer.addGeometry(envolvente, Color.LIGHT_GRAY, Color.LIGHT_GRAY, false);
+
+		for(Polygon agujero: region.getAgujeros())
+			_panelDualizer.addGeometry(agujero, Color.LIGHT_GRAY, new Color(236, 236, 236), true);
+		
+//		Coordinate[] coords = region.getGeometry().getCoordinates();
+//
+//		for(int i=0; i<coords.length; ++i)
+//			_panelDualizer.addGeometry(_instancia.getFactory().createPoint(coords[i]), Color.GRAY);
+		
+		for(Point point: uncovered)
+			_panelDualizer.addGeometry(point, Color.GRAY);
 	}
 	
 	@SuppressWarnings("unused")
@@ -375,7 +375,7 @@ public class Interfaz
 	private void imprimirResumen()
 	{
 		CplexCG cplex = _solverCG.getCplex();
-		Dualizer dualizer = _solverCG.getDualizer();
+		Dualizer dualizer = _solverCG.getLastDualizer();
 		DecimalFormat format = new DecimalFormat("###0.00");
 		
 		System.out.print(" -> It " + _solverCG.getIteracion() + ": ");
@@ -384,7 +384,6 @@ public class Interfaz
 		{
 			System.out.print("DS = " + (dualizer.getCplexStatus() == IloCplex.Status.Optimal ? "Opt" : "***"));
 			System.out.print(", dobj = " + format.format(dualizer.getObjetivo()));
-			System.out.print(_solverCG.esDualOptimo() ? " *" : "  ");
 		}
 		
 		System.out.print(" - Primal: ");
@@ -392,8 +391,6 @@ public class Interfaz
 		System.out.print(cplex.cantidadRestricciones() + " constr; ");
 		System.out.print("obj = " + format.format(cplex.funcionObjetivo()) + "; ");
 		System.out.print(cplex.variablesFraccionarias() + " fract");
-		System.out.print(_solverCG.esDualViolado() ? " (DV)" : "");
-		System.out.print(_solverCG.esPrimalViolado() ? " (PV)" : "");
 		System.out.println();
 	}
 

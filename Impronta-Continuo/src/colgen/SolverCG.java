@@ -1,6 +1,7 @@
 package colgen;
 
 import java.util.ArrayList;
+import java.util.List;
 import java.util.Map;
 
 import com.vividsolutions.jts.geom.Coordinate;
@@ -8,6 +9,7 @@ import com.vividsolutions.jts.geom.Point;
 
 import impronta.Instancia;
 import impronta.Pad;
+import impronta.Semilla;
 
 // Representa el proceso de resolucion
 public class SolverCG
@@ -15,13 +17,10 @@ public class SolverCG
 	private Instancia _instancia;
 	private ArrayList<Pad> _pads;
 	private CplexCG _cplex;
-	private Dualizer _dualizer;
+	private Dualizer _lastDualizer;
 
 	private int _iteracion;
-	private boolean _dualOptimo;
 	private boolean _dualViolado;
-	private boolean _primalViolado;
-	private Pad _violadorDual;
 
 	// Constructor
 	public SolverCG(Instancia instancia)
@@ -31,49 +30,38 @@ public class SolverCG
 	}
 	
 	// Resuelve la instancia
-	public void iniciar()
+	public void resolver()
 	{
-		inicializarPads();
-		inicializarModelo();
-		resolverRelajacion();
+		resolver(Integer.MAX_VALUE);
 	}
 	
-	public boolean iterar()
+	public void resolver(int iteraciones)
 	{
-		_iteracion++;
-		_dualOptimo = false;
-		_dualViolado = false;
-		_primalViolado = false;
-		_violadorDual = null;
+		inicializarEstadisticas();
+		inicializarPads();
+		inicializarModelo();
 		
-		Point point = lazyConstraint();
-		if( point != null )
+		for(int i=0; i<iteraciones && _dualViolado; ++i)
 		{
-			agregar(point);
 			resolverRelajacion();
+			boolean addedConstraints = lazyConstraints();
 			
-			_primalViolado = true;
-			return true;
+			while( addedConstraints == true )
+			{
+				resolverRelajacion();
+				addedConstraints = lazyConstraints();
+			}
+			
+			_dualViolado = dualizar();
+			_iteracion++;
 		}
-
-		if( dualOptimo() == true )
-		{
-			_dualOptimo = true;
-			return false;
-		}
-		
-//		Pad pad = violadorDual();
-//		if( pad != null )
-//		{
-//			agregar(pad);
-//			resolverRelajacion();
-//			
-//			_dualViolado = true;
-//			_violadorDual = pad;
-//			return true;
-//		}
-		
-		return false;
+	}
+	
+	// Inicializa las estadísticas
+	private void inicializarEstadisticas()
+	{
+		_iteracion = 0;
+		_dualViolado = true;
 	}
 	
 	// Inicializa los pads con la heurística inicial
@@ -89,7 +77,7 @@ public class SolverCG
 		_cplex = new CplexCG();
 		
 		for(Pad pad: _pads)
-			agregar(pad);
+			agregarVariable(pad);
 	}
 	
 	// Pruebas de la resolucion
@@ -98,52 +86,10 @@ public class SolverCG
 		_cplex.resolver();
 	}
 	
-	// Agrega un pad y sus restricciones al modelo
-	private void agregar(Pad pad)
+	// Busca un punto cubierto por mas de un pad y agrega la restricción asociada
+	private boolean lazyConstraints()
 	{
-		_cplex.agregarVariable(pad, objetivo(pad));
-
-		Coordinate centro = pad.getCentro().getCoordinate();
-		for(Coordinate esquina: pad.getPerimetro().getCoordinates())
-		{
-			double x = esquina.x < centro.x ? esquina.x + _instancia.getPasoHorizontal() : esquina.x - _instancia.getPasoHorizontal();
-			double y = esquina.y < centro.y ? esquina.y + _instancia.getPasoVertical() : esquina.y - _instancia.getPasoVertical();
-			double z = esquina.z;
-
-			agregar(_instancia.getFactory().createPoint(new Coordinate(x,y,z)));
-		}
-
-		agregar(pad.getCentro());
-	}
-	
-	// Agrega la restriccion asociada con un punto
-	private void agregar(Point point)
-	{
-		_cplex.agregarRestriccion(point);
-	}
-	
-	// Busca un pad que viole las restricciones duales
-	public Pad violadorDual()
-	{
-		// TODO: Reimplementar!
-		Map<Point, Double> duales = _cplex.duales();
-		
-		for(Pad pad: _pads)
-		{
-			double lhs = 0;
-			for(Point point: duales.keySet()) if( pad.contiene(point) )
-				lhs += duales.get(point);
-			
-			if( lhs < 0.99 * objetivo(pad) )
-				return pad;
-		}
-		
-		return null;
-	}
-	
-	// Busca un punto cubierto por mas de un pad
-	private Point lazyConstraint()
-	{
+		// TODO: Buscar mas de un punto!
 		Map<Pad, Double> primales = _cplex.primales();
 		
 		for(Pad pad: primales.keySet())
@@ -159,19 +105,55 @@ public class SolverCG
 				lhs += primales.get(variable);
 			
 			if( lhs > 1.01 )
-				return _instancia.getFactory().createPoint(interno);
+			{
+				agregarRestriccion(_instancia.getFactory().createPoint(interno));
+				return true;
+			}
 		}
 		
-		return null;
+		return false;
 	}
 	
-	// Intenta construir una solucion dual con el mismo objetivo que el primal
-	private boolean dualOptimo()
+	// Resuelve el problema dualizador, busca un punto no cubierto, y agrega la variable asociada
+	public boolean dualizar()
 	{
-		_dualizer = new Dualizer(this);
-		return _dualizer.esOptima();
+		_lastDualizer = new Dualizer(this);
+		_lastDualizer.resolver();
+		
+		List<Point> uncovered = CubrimientoDual.getUncoveredPoints(_instancia, _lastDualizer.getCubrimiento());
+		
+		for(Point point: uncovered)
+		for(Semilla semilla: _instancia.getSemillas())
+			agregarVariable(Pad.flexible(_instancia, semilla, point.getCoordinate()));
+		
+		return uncovered.size() > 0;
 	}
 	
+	// Agrega un pad y sus restricciones al modelo
+	private void agregarVariable(Pad pad)
+	{
+		if( pad.factible(_instancia.getRegion()) )
+			_cplex.agregarVariable(pad, objetivo(pad));
+
+		Coordinate centro = pad.getCentro().getCoordinate();
+		for(Coordinate esquina: pad.getPerimetro().getCoordinates())
+		{
+			double x = esquina.x < centro.x ? esquina.x + _instancia.getPasoHorizontal() : esquina.x - _instancia.getPasoHorizontal();
+			double y = esquina.y < centro.y ? esquina.y + _instancia.getPasoVertical() : esquina.y - _instancia.getPasoVertical();
+			double z = esquina.z;
+
+			agregarRestriccion(_instancia.getFactory().createPoint(new Coordinate(x,y,z)));
+		}
+
+		agregarRestriccion(pad.getCentro());
+	}
+	
+	// Agrega la restriccion asociada con un punto
+	private void agregarRestriccion(Point point)
+	{
+		_cplex.agregarRestriccion(point);
+	}
+
 	// Coeficiente de la funcion objetivo asociado con cada pad
 	public double objetivo(Pad pad)
 	{
@@ -201,28 +183,12 @@ public class SolverCG
 	{
 		return _cplex;
 	}
-	public Dualizer getDualizer()
+	public Dualizer getLastDualizer()
 	{
-		return _dualizer;
+		return _lastDualizer;
 	}
 	public int getIteracion()
 	{
 		return _iteracion;
-	}
-	public boolean esDualOptimo()
-	{
-		return _dualOptimo;
-	}
-	public boolean esDualViolado()
-	{
-		return _dualViolado;
-	}
-	public boolean esPrimalViolado()
-	{
-		return _primalViolado;
-	}
-	public Pad getVioladorDual()
-	{
-		return _violadorDual;
 	}
 }

@@ -10,7 +10,6 @@ import ilog.concert.IloException;
 import ilog.concert.IloNumExpr;
 import ilog.concert.IloNumVar;
 import ilog.cplex.IloCplex;
-import ilog.cplex.IloCplex.UnknownObjectException;
 import impronta.Pad;
 
 public class Dualizer
@@ -25,8 +24,6 @@ public class Dualizer
 	private IloCplex _cplex;
 	private Map<Pad, IloNumVar> _vvars;
 	private Map<Point, IloNumVar> _yvars;
-	
-	private Pad _padNoFactible;
 
 	public Dualizer(SolverCG solver)
 	{
@@ -34,18 +31,17 @@ public class Dualizer
 		_primales = solver.primales();
 		_duales = solver.duales();
 	}
-	
-	public boolean esOptima()
+
+	// Resuelve el modelo
+	public boolean resolver()
 	{
 		boolean ret = false;
-		
+
 		try
 		{
-			construirInput();
-			if( resolverModelo() == true )
-				ret = dualFactible();
+			ret = resolverUnsafe();
 		}
-		catch(IloException e)
+		catch(Exception e)
 		{
 			e.printStackTrace();
 		}
@@ -53,15 +49,11 @@ public class Dualizer
 		return ret;
 	}
 
-	// Puntos generados hasta ahora
-	private void construirInput()
+	public boolean resolverUnsafe() throws IloException
 	{
 		_variables = new ArrayList<Point>(_duales.keySet());
 		_restricciones = new ArrayList<Pad>(_primales.keySet());
-	}
 
-	private boolean resolverModelo() throws IloException
-	{
 		_cplex = new IloCplex();
 		_cplex.setOut(null);
 		
@@ -95,16 +87,9 @@ public class Dualizer
 			ths = _cplex.sum(ths, _yvars.get(punto));
 		
 		_cplex.addEq(ths, _solverCG.getCplex().funcionObjetivo());
-		
 		System.out.println("Dualizer target: " + _solverCG.getCplex().funcionObjetivo());
-		
+
 		return _cplex.solve();
-	}
-	
-	private boolean dualFactible() throws UnknownObjectException, IloException
-	{
-		// TODO: Implementar!
-		return true;
 	}
 	
 	// Consultas
@@ -146,7 +131,7 @@ public class Dualizer
 	{
 		return _variables;
 	}
-	public Map<Point, Double> getXVars()
+	public Map<Point, Double> getCubrimiento()
 	{
 		Map<Point, Double> ret = new HashMap<Point, Double>();
 		
@@ -161,9 +146,5 @@ public class Dualizer
 		}
 		
 		return ret;
-	}
-	public Pad getPadNoFactible()
-	{
-		return _padNoFactible;
 	}
 }

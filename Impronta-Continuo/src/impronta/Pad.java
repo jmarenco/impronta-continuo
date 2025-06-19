@@ -4,6 +4,7 @@ import java.awt.geom.AffineTransform;
 import java.util.ArrayList;
 
 import com.vividsolutions.jts.geom.Coordinate;
+import com.vividsolutions.jts.geom.Geometry;
 import com.vividsolutions.jts.geom.Point;
 import com.vividsolutions.jts.geom.Polygon;
 
@@ -84,7 +85,7 @@ public class Pad
 			
 			pad.setLocacion( pad.rotarPuntos(locacion), c );
 			
-			if( pad.factible() == true )
+			if( pad.locacionFactible() == true )
 				break;
 		}
 		
@@ -196,8 +197,18 @@ public class Pad
 		return restriccion.interseca(_locacion);
 	}
 	
+	// Determina si el pad es factible
+	public boolean factible(Region yacimiento)
+	{
+		return yacimiento.getGeometry().contains( this.getPerimetro() ) && yacimiento.getGeometry().contains( this.getLocacion() ) && this.locacionFactible();
+	}
+	public boolean factible(Geometry yacimiento)
+	{
+		return yacimiento.contains( this.getPerimetro() ) && yacimiento.contains( this.getLocacion() ) && this.locacionFactible();
+	}
+	
 	// Determina si la locacion se interseca con algún área restringida
-	public boolean factible()
+	public boolean locacionFactible()
 	{
 		for(Restriccion restriccion: _instancia.getRestricciones())
 		{

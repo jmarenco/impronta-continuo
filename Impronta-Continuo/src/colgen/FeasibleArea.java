@@ -12,19 +12,34 @@ public class FeasibleArea
 	private Instancia _instancia;
 	private Region _region;
 	
+	// Cache
+	private static Instancia _instanciaCache;
+	private static Region _regionCache;
+	
 	public FeasibleArea(Instancia instancia)
 	{
 		_instancia = instancia;
 	}
 	
+	public static Region get(Instancia instancia)
+	{
+		return new FeasibleArea(instancia).get();
+	}
+	
 	public Region get()
 	{
+		if( _instanciaCache == _instancia && _regionCache != null )
+			return _regionCache;
+		
 		if( _region == null )
 		{
 			_region = new Region();
 
 			for(Polygon envolvente: _instancia.getRegion().getEnvolventes())
 				_region.agregarEnvolvente(areaFactible(envolvente));
+			
+			_instanciaCache = _instancia;
+			_regionCache = _region;
 		}
 		
 		return _region;

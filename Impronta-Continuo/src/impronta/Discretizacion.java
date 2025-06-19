@@ -114,7 +114,7 @@ public class Discretizacion
 		for(Coordinate c: _puntos.getCoordinates())
 		{
 			Pad pad = Pad.flexible(_instancia, s, c);
-			if( _yacimiento.contains( pad.getPerimetro() ) && _yacimiento.contains( pad.getLocacion() ) && pad.factible() )
+			if( pad.factible(_yacimiento) )
 				ret.add(pad);
 		}
 		
