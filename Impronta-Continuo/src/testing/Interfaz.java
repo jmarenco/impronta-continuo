@@ -203,6 +203,9 @@ public class Interfaz
 
         for(Polygon factible: FeasibleArea.get(_instancia).getEnvolventes())
         	panel.addGeometry(factible, Color.LIGHT_GRAY, Color.LIGHT_GRAY, false);
+
+        for(Polygon agujero: FeasibleArea.get(_instancia).getAgujeros())
+        	panel.addGeometry(agujero, Color.LIGHT_GRAY, new Color(236, 236, 236), false);
 	}
 	
 	@SuppressWarnings("unused")

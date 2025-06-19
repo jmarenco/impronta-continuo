@@ -72,4 +72,18 @@ public class Region
 		
 		throw new RuntimeException("Error: Region.getFactory(), no hay envolventes ni agujeros registrados en la region!");
 	}
+
+	// Clonación
+	public Region clonar()
+	{
+		Region ret = new Region();
+		
+		for(Polygon envolvente: _envolventes)
+			ret.agregarEnvolvente((Polygon)envolvente.clone());
+
+		for(Polygon agujero: _agujeros)
+			ret.agregarAgujero((Polygon)agujero.clone());
+
+		return ret;
+	}
 }

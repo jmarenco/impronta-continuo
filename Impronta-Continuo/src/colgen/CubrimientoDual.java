@@ -96,7 +96,7 @@ public class CubrimientoDual
 		Map<Semilla, Region> ret = new HashMap<Semilla, Region>();
 		for(Semilla semilla: _instancia.getSemillas())
 		{
-			Region region = FeasibleArea.get(_instancia);
+			Region region = FeasibleArea.get(_instancia).clonar();;
 			for(Pad pad: _pads.keySet()) if( pad.getSemilla() == semilla )
 			{
 				List<Pad> intersecting = _pads.keySet().stream().filter(p -> p != pad && p.getSemilla() == semilla && p.interseca(pad)).collect(Collectors.toList());
