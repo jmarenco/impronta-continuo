@@ -3,7 +3,9 @@ package colgen;
 import java.util.Map;
 import java.util.HashMap;
 import java.util.stream.Collectors;
+import java.util.stream.Stream;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.List;
 
 import com.vividsolutions.jts.geom.Coordinate;
@@ -14,6 +16,7 @@ import com.vividsolutions.jts.geom.Polygon;
 import impronta.Instancia;
 import impronta.Pad;
 import impronta.Region;
+import impronta.Restriccion;
 import impronta.Semilla;
 
 public class CubrimientoDual
@@ -54,6 +57,7 @@ public class CubrimientoDual
 			
 			for(int i=0; i<geometry.getNumGeometries(); ++i)
 			{
+				// Agrega todos los vértices de la componente
 				Coordinate[] coords = geometry.getGeometryN(i).getCoordinates();
 				boolean alguno = false;
 				
@@ -66,9 +70,21 @@ public class CubrimientoDual
 						alguno = true;
 					}
 				}
-				
+
+				// Si todos los vertices estaban agregados, agrega el centroide
 				if( alguno == false )
+				{
 					ret.add(geometry.getGeometryN(i).getCentroid());
+
+					// Si el centroide no permite ubicar un par, agrega todos los vértices de las restricciones conflictivas
+					Pad pad = Pad.flexible(_instancia, semilla, geometry.getGeometryN(i).getCentroid().getCoordinate());
+					if( pad.factibleExceptoLocacion(_instancia.getRegion()))
+					{
+						for(Restriccion restriccion: pad.restriccionesConflictivas())
+						for(Coordinate coordinate: Stream.of(restriccion.getPolygon().getCoordinates()).collect(Collectors.toList()))
+							ret.add(_instancia.getFactory().createPoint(coordinate));
+					}
+				}
 			}
 		}
 		

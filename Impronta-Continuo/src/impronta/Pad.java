@@ -2,6 +2,8 @@ package impronta;
 
 import java.awt.geom.AffineTransform;
 import java.util.ArrayList;
+import java.util.List;
+import java.util.stream.Collectors;
 
 import com.vividsolutions.jts.geom.Coordinate;
 import com.vividsolutions.jts.geom.Geometry;
@@ -206,6 +208,10 @@ public class Pad
 	{
 		return yacimiento.contains( this.getPerimetro() ) && yacimiento.contains( this.getLocacion() ) && this.locacionFactible();
 	}
+	public boolean factibleExceptoLocacion(Region yacimiento)
+	{
+		return yacimiento.getGeometry().contains( this.getPerimetro() ) && yacimiento.getGeometry().contains( this.getLocacion() ) && this.locacionFactible() == false;
+	}
 	
 	// Determina si la locacion se interseca con algún área restringida
 	public boolean locacionFactible()
@@ -217,6 +223,11 @@ public class Pad
 		}
 		
 		return true;		
+	}
+	
+	public List<Restriccion> restriccionesConflictivas()
+	{
+		return _instancia.getRestricciones().stream().filter(r -> this.interseca(r)).collect(Collectors.toList());
 	}
 	
 	// Valorizacion del pad

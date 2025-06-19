@@ -47,6 +47,7 @@ public class FeasibleArea
 	
 	private Polygon areaFactible(Polygon envolvente)
 	{
+		// Bugfix: Eliminar los agujeros y las restricciones
 		Coordinate[] vertices = envolvente.getCoordinates();
 		Coordinate[] ret = new Coordinate[vertices.length];
 		Point centroide = envolvente.getCentroid();

@@ -134,13 +134,13 @@ public class Interfaz
 	private void resolverRowCol(ArgMap argmap)
 	{
 		SolverCG solver = new SolverCG(_instancia);
-		solver.resolver(4);
+		solver.resolver(1);
 		
         if( argmap.containsArg("-show") )
         {
 	    	crearVentana();
 	        mostrarInstancia(_panelPrincipal);
-	       	mostrarRelajacion(solver.primales());
+//	       	mostrarRelajacion(solver.primales());
 	       	mostrarRestricciones(solver.duales());
         	mostrar(_framePrincipal);
         	
@@ -197,9 +197,9 @@ public class Interfaz
         
         for(Polygon agujero: _instancia.getRegion().getAgujeros())
         	panel.addGeometry(agujero);
-        
-        for(Restriccion restriccion: _instancia.getRestricciones())
-        	panel.addGeometry(restriccion.getPolygon(), Color.BLACK, Color.LIGHT_GRAY, true);
+//        
+//        for(Restriccion restriccion: _instancia.getRestricciones())
+//        	panel.addGeometry(restriccion.getPolygon(), Color.BLACK, Color.LIGHT_GRAY, true);
 
         for(Polygon factible: FeasibleArea.get(_instancia).getEnvolventes())
         	panel.addGeometry(factible, Color.LIGHT_GRAY, Color.LIGHT_GRAY, false);
