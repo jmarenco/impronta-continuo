@@ -42,19 +42,22 @@ public class SolverCG
 		inicializarModelo();
 		
 		for(int i=0; i<iteraciones && _dualViolado; ++i)
+			iterar();
+	}
+	
+	public void iterar()
+	{
+		resolverRelajacion();
+		boolean addedConstraints = lazyConstraints();
+		
+		while( addedConstraints == true )
 		{
 			resolverRelajacion();
-			boolean addedConstraints = lazyConstraints();
-			
-			while( addedConstraints == true )
-			{
-				resolverRelajacion();
-				addedConstraints = lazyConstraints();
-			}
-			
-			_dualViolado = dualizar();
-			_iteracion++;
+			addedConstraints = lazyConstraints();
 		}
+		
+		_dualViolado = dualizar();
+		_iteracion++;
 	}
 	
 	// Inicializa las estadísticas
@@ -155,7 +158,7 @@ public class SolverCG
 	}
 
 	// Coeficiente de la funcion objetivo asociado con cada pad
-	public double objetivo(Pad pad)
+	public static double objetivo(Pad pad)
 	{
 		return pad.getArea();
 	}

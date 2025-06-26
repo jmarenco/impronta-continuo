@@ -109,7 +109,7 @@ public class Interfaz
 
         if( argmap.containsArg("-show") )
         {
-	    	crearVentana();
+	    	crearVentana(null);
 	        mostrarInstancia(_panelPrincipal);
 	        mostrarSolucion();
 	        mostrar(_framePrincipal);
@@ -133,22 +133,24 @@ public class Interfaz
 	
 	private void resolverRowCol(ArgMap argmap)
 	{
-		SolverCG solver = new SolverCG(_instancia);
-		solver.resolver(1);
+		_solverCG = new SolverCG(_instancia);
+		_solverCG.resolver(20);
 		
         if( argmap.containsArg("-show") )
         {
-	    	crearVentana();
+	    	crearVentana(null);
 	        mostrarInstancia(_panelPrincipal);
-//	       	mostrarRelajacion(solver.primales());
-	       	mostrarRestricciones(solver.duales());
+	       	mostrarRelajacion(_solverCG.primales());
+//	       	mostrarRestricciones(solver.duales());
         	mostrar(_framePrincipal);
-        	
-        	crearDualizer();
+
+        	crearDualizer(null);
         	mostrarInstancia(_panelDualizer);
-        	mostrarCubrimientoDual(CubrimientoDual.get(_instancia, solver.getLastDualizer().getCubrimiento()).get(_instancia.getSemilla(0)), CubrimientoDual.getUncoveredPoints(_instancia, solver.getLastDualizer().getCubrimiento()));
-        	mostrarSolucionDualizer(solver.getLastDualizer());
+        	mostrarCubrimientoDual(CubrimientoDual.get(_instancia, _solverCG.getLastDualizer().getCubrimiento()).get(_instancia.getSemilla(0)), CubrimientoDual.getUncoveredPoints(_instancia, _solverCG.getLastDualizer().getCubrimiento()));
+        	mostrarSolucionDualizer(_solverCG.getLastDualizer());
         	mostrar(_frameDualizer);
+        	
+        	imprimirRelajacion();
         }
 	}
 	
@@ -194,18 +196,18 @@ public class Interfaz
 		
         for(Polygon envolvente: _instancia.getRegion().getEnvolventes())
         	panel.addGeometry(envolvente);
-        
-        for(Polygon agujero: _instancia.getRegion().getAgujeros())
-        	panel.addGeometry(agujero);
-//        
-//        for(Restriccion restriccion: _instancia.getRestricciones())
-//        	panel.addGeometry(restriccion.getPolygon(), Color.BLACK, Color.LIGHT_GRAY, true);
 
         for(Polygon factible: FeasibleArea.get(_instancia).getEnvolventes())
         	panel.addGeometry(factible, Color.LIGHT_GRAY, Color.LIGHT_GRAY, false);
 
         for(Polygon agujero: FeasibleArea.get(_instancia).getAgujeros())
         	panel.addGeometry(agujero, Color.LIGHT_GRAY, new Color(236, 236, 236), false);
+        
+        for(Polygon agujero: _instancia.getRegion().getAgujeros())
+        	panel.addGeometry(agujero);
+        
+        for(Restriccion restriccion: _instancia.getRestricciones())
+        	panel.addGeometry(restriccion.getPolygon(), Color.BLACK, Color.LIGHT_GRAY, true);
 	}
 	
 	@SuppressWarnings("unused")
@@ -397,9 +399,9 @@ public class Interfaz
 		System.out.println();
 	}
 
-	private void crearVentana()
+	private void crearVentana(String titulo)
 	{
-    	_framePrincipal = new JFrame("Solucion primal");
+    	_framePrincipal = new JFrame(titulo != null ? titulo : "Solucion primal");
         _framePrincipal.setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
         _framePrincipal.setSize(500, 500);
         
@@ -408,9 +410,9 @@ public class Interfaz
 	}
 	
 	@SuppressWarnings("unused")
-	private void crearDualizer()
+	private void crearDualizer(String titulo)
 	{
-		_frameDualizer = new JFrame("Dualizador");
+		_frameDualizer = new JFrame(titulo != null ? titulo : "Dualizador");
 	    _frameDualizer.setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
 	    _frameDualizer.setSize(500, 500);
 	        

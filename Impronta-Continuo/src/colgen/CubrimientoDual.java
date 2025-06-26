@@ -72,7 +72,7 @@ public class CubrimientoDual
 				}
 
 				// Si todos los vertices estaban agregados, agrega el centroide
-				if( alguno == false )
+				if( alguno == false && coords.length > 0 )
 				{
 					ret.add(geometry.getGeometryN(i).getCentroid());
 

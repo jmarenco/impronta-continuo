@@ -40,6 +40,11 @@ public class Dualizer
 		try
 		{
 			ret = resolverUnsafe();
+			
+//			for(Point punto: _variables)
+//				System.out.println("   y(" + punto + ") = " + _cplex.getValue(_yvars.get(punto)));
+//			
+//			System.out.println("   Dualizer objective = " + _cplex.getObjValue());
 		}
 		catch(Exception e)
 		{
@@ -79,7 +84,7 @@ public class Dualizer
 				lhs = _cplex.sum(lhs, _yvars.get(punto));
 			
 			lhs = _cplex.sum(lhs, _cplex.prod(-1, _vvars.get(pad)));
-			_cplex.addGe(lhs, 1);
+			_cplex.addGe(lhs, SolverCG.objetivo(pad));
 		}
 		
 		IloNumExpr ths = _cplex.linearNumExpr();
